@@ -40,7 +40,7 @@ def _finish_scoping() -> str:
 
     with open(vision_path, "w") as f:
         json.dump(vision_doc, f, indent=2)
-        
+
     # update agent state
     agent_state["phase"] = PHASE_GUARDIAN
     agent_state["project_state"] = {
@@ -51,6 +51,7 @@ def _finish_scoping() -> str:
     }
 
     # log the scoping API call
+    '''
     log_llm_call(
         call_type="scoping",
         model="gemini-2.5-flash-lite",
@@ -59,6 +60,7 @@ def _finish_scoping() -> str:
         feature_id=None,
         response_preview=str(vision_doc)[:100],
     )
+    '''
 
     return vision_doc
 
