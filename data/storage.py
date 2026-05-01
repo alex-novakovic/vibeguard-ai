@@ -3,7 +3,7 @@ import os
 
 def initialize_feature_log(vision_doc: dict) -> str:
     # putanje
-    logs_dir = "data/logs" #cuva putanju do foldera gde ce se cuvati logovi
+    logs_dir = "data/logs" # save path to the log folder
     vision_path = os.path.join(logs_dir, "vision.json") # cuva putanju do vision.json fajla
     feature_log_path = os.path.join(logs_dir, "feature_log.json") # cuva putanju do feature_log.json fajla
     
