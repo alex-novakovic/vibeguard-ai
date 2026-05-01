@@ -109,8 +109,8 @@ def scoping_session() -> dict:
             result["createdAt"] = datetime.now(timezone.utc).isoformat()
             
     
-            with open("agent/output/vision_doc.json", "w") as f:
-                json.dump(result, f, indent=2)
+            # with open("agent/output/vision_doc.json", "w") as f:
+              #  json.dump(result, f, indent=2)
 
             return result
 
