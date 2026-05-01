@@ -2,6 +2,7 @@ import gradio as gr
 import json
 import queue
 import threading
+import anthropic
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,7 +31,7 @@ def initialize_feature_log(vision_doc: dict) -> str:
 def load_or_create_project(state) -> str:
     """STUB. Real version: Member B checks if vision.json exists on disk.
     Returns 'existing' if found (loads it into state), 'new' if not."""
-    return "new"
+    return "existing"
 
 def log_feature_cycle(
     feature_id: str,
@@ -74,10 +75,67 @@ def vision_alignment_check(feature_id: str, alignment_note: str) -> dict:
         "feedback": "This work aligns with your core product goal.",
     }
 
+class ProjectStateSTUB:
+    """STUB. Real version: Member B provides project state"""
+    vision_doc = None
+    feature_log = None
+    def __init__(self):
+        with open("data/logs/vision.json", "r") as f:
+            self.vision_doc = json.load(f)
+
+        with open("data/logs/feature_log.json", "r") as f:
+            self.feature_log = json.load(f)
+
+def on_startup(state):
+    result = load_or_create_project(state)
+    if result == "existing":
+        # vision_doc already loaded into state by the real function
+        welcome = "Welcome back! Your project is loaded. Start a feature below."
+        return (
+            [{"role": "assistant", "content": welcome}],
+            state.vision_doc,    # populate sidebar immediately
+            state.feature_log,   # populate feature_log sidebar immediately
+            "active",            # skip scoping
+        )
+    else:
+        return (
+            [{"role": "assistant", "content": WELCOME}],
+            None,                # sidebar empty
+            "scoping",
+        )
+
+client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env automatically
+
+def stream_agent_reply(history: list) -> ...:
+    # Start with an empty assistant message that we'll fill in
+    history = history + [{"role": "assistant", "content": ""}]
+    
+    with client.messages.stream(
+        model="claude-opus-4-5",
+        max_tokens=1024,
+        system="You are VibeGuard AI...",
+        messages=[m for m in history if m["role"] != "assistant" or m["content"]],
+    ) as stream:
+        for text in stream.text_stream:
+            history[-1]["content"] += text
+            yield history
+
+def on_send(message, history, phase):
+    history = history + [{"role": "user", "content": message}]
+    reply = "reply"
+    # ... get reply ...
+    history = history + [{"role": "assistant", "content": reply}]
+    return history, history, ""   # chatbot, history_state, msg_input (cleared)
+
+
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
 with gr.Blocks(title="VibeGuard AI") as demo:
+    # declare alongside the UI components, inside gr.Blocks
+    history_state = gr.State([])          # list of {"role": ..., "content": ...}
+    phase_state   = gr.State("scoping")   # "scoping" | "guardian"
+    project_state = gr.State(ProjectStateSTUB())   # will hold a ProjectState instance
 
     gr.Markdown("# VibeGuard AI\n*Stop tinkering. Start shipping.*")
 
@@ -99,6 +157,7 @@ with gr.Blocks(title="VibeGuard AI") as demo:
                     autofocus=True
                 )
                 send_btn = gr.Button("Send", variant="primary", scale=1)
+                
 
         # ── RIGHT: sidebar ───────────────────────────────────────────────────
         with gr.Column(scale=1, min_width=300):
@@ -106,6 +165,18 @@ with gr.Blocks(title="VibeGuard AI") as demo:
                 vision_display = gr.JSON(label=None, value=None)
             with gr.Accordion("Feature Log", open=True):
                 log_display = gr.JSON(label=None, value=None)
+
+        send_btn.click(
+            on_send,
+            inputs=[msg_input, history_state, phase_state],
+            outputs=[chatbot, history_state, msg_input]
+        )
+
+        demo.load(
+            on_startup,
+            inputs=[project_state],                        # gr.State holding ProjectState
+            outputs=[chatbot, vision_display, log_display, phase_state],
+        )
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft())
