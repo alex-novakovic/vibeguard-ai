@@ -1,11 +1,16 @@
 import json
 import os
+from data.validate import validate_vision_doc
+
 
 def initialize_feature_log(vision_doc: dict) -> str:
+    
+    validate_vision_doc(vision_doc)
+    
     # putanje
     logs_dir = "data/logs" # save path to the log folder
-    vision_path = os.path.join(logs_dir, "vision.json") # cuva putanju do vision.json fajla
-    feature_log_path = os.path.join(logs_dir, "feature_log.json") # cuva putanju do feature_log.json fajla
+    vision_path = os.path.join(logs_dir, "vision.json") # save path to the vision.json file
+    feature_log_path = os.path.join(logs_dir, "feature_log.json") # save path to the feature_log.json file
     
     # pravi data/logs/ folder ako ne postoji
     os.makedirs(logs_dir, exist_ok=True)
