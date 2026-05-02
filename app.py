@@ -5,6 +5,8 @@ import threading
 import anthropic
 from datetime import datetime, timezone
 from pathlib import Path
+from agent.loop import run_agent, agent_state, PHASE_GUARDIAN
+
 
 # ── STUBS — replace with real imports once Member A/B code is ready ──────────
 # from agent.scoping import scoping_session
@@ -101,6 +103,7 @@ def on_startup(state):
         return (
             [{"role": "assistant", "content": WELCOME}],
             None,                # sidebar empty
+            None,                # feature_log sidebar empty
             "scoping",
         )
 
@@ -120,13 +123,21 @@ def stream_agent_reply(history: list) -> ...:
             history[-1]["content"] += text
             yield history
 
-def on_send(message, history, phase):
-    history = history + [{"role": "user", "content": message}]
-    reply = "reply"
-    # ... get reply ...
-    history = history + [{"role": "assistant", "content": reply}]
-    return history, history, ""   # chatbot, history_state, msg_input (cleared)
+def on_send(message, history):
+    response = run_agent(message)
+    history = history + [
+        {"role": "user", "content": message},
+        {"role": "assistant", "content": response},
+    ]
 
+    # scoping just completed on this turn
+    if agent_state["phase"] == PHASE_GUARDIAN:
+        vision_doc = agent_state["project_state"]["vision_doc"]
+        log_path = initialize_feature_log(vision_doc)
+        log_data = json.loads(Path(log_path).read_text())
+        return history, history, "", vision_doc, log_data
+
+    return history, history, "", gr.update(), gr.update()
 
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
@@ -168,9 +179,16 @@ with gr.Blocks(title="VibeGuard AI") as demo:
 
         send_btn.click(
             on_send,
-            inputs=[msg_input, history_state, phase_state],
-            outputs=[chatbot, history_state, msg_input]
+            inputs=[msg_input, history_state],
+            outputs=[chatbot, history_state, msg_input, vision_display, log_display]
         )
+
+        msg_input.submit(
+            on_send,
+            inputs=[msg_input, history_state],
+            outputs=[chatbot, history_state, msg_input, vision_display, log_display],
+        )
+
 
         demo.load(
             on_startup,
@@ -179,5 +197,4 @@ with gr.Blocks(title="VibeGuard AI") as demo:
         )
 
 if __name__ == "__main__":
-    demo.launch(theme=gr.themes.Soft())
-
+    demo.launch(theme=gr.themes.Soft(), share=False)
