@@ -5,6 +5,7 @@ Swap the imports in app.py to use the real backends.
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+import os
 
 from interfaces import AgentFunctions, StorageBackend
 
@@ -14,8 +15,28 @@ class FakeStorage(StorageBackend):
     def initialize_feature_log(self, vision_doc: dict) -> str:
         return "data/logs/feature_log.json"
 
-    def load_or_create_project(self, state) -> str:
-        return "existing" if (state is not None and state.vision_doc is not None) else "new"
+    def load_or_create_project(self) -> str:
+        vision_path = "data/logs/vision.json"
+        feature_log_path = "data/logs/feature_log.json"
+        
+        # Check if vision.json exists on startup
+        if os.path.exists(vision_path) and os.path.exists(feature_log_path):
+            
+            # Load vision.json from disk into dict
+            with open(vision_path, "r") as f:
+                vision_doc = json.load(f)
+            
+            # Load feature_log.json from disk into dict
+            with open(feature_log_path, "r") as f:
+                feature_log = json.load(f)
+            
+            # Populate ProjectState with existing data
+            state = DevProjectState(vision_doc, feature_log)
+            
+            return "existing", state
+        
+        # vision.json does not exist — signal Gradio to start scoping
+        return "new", None
 
     def log_feature_cycle(
         self,
@@ -68,8 +89,6 @@ class DevProjectState:
     Replace with: from data.state import ProjectState
     """
 
-    def __init__(self):
-        vision_path = Path("data/logs/vision123.json")
-        log_path = Path("data/logs/feature_log123.json")
-        self.vision_doc = json.loads(vision_path.read_text()) if vision_path.exists() else None
-        self.feature_log = json.loads(log_path.read_text()) if log_path.exists() else None
+    def __init__(self, vision_doc, feature_log):
+        self.vision_doc = vision_doc
+        self.feature_log = feature_log
