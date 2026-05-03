@@ -107,22 +107,6 @@ def on_startup(state):
             "scoping",
         )
 
-client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env automatically
-
-def stream_agent_reply(history: list) -> ...:
-    # Start with an empty assistant message that we'll fill in
-    history = history + [{"role": "assistant", "content": ""}]
-    
-    with client.messages.stream(
-        model="claude-opus-4-5",
-        max_tokens=1024,
-        system="You are VibeGuard AI...",
-        messages=[m for m in history if m["role"] != "assistant" or m["content"]],
-    ) as stream:
-        for text in stream.text_stream:
-            history[-1]["content"] += text
-            yield history
-
 def on_send(message, history):
     response = run_agent(message)
     history = history + [
