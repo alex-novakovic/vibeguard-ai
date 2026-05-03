@@ -42,6 +42,9 @@ def run_conversation_turn(user_message: str, retries: int = 3) -> str:
 
             assistant_message = response.choices[0].message.content
 
+            # extract token usage
+            current_cycle_tokens = response.usage.total_tokens if response.usage else None
+
             # TODO: log_llm_call() here
 
             chat_messages.append({
@@ -49,7 +52,7 @@ def run_conversation_turn(user_message: str, retries: int = 3) -> str:
                 "content": assistant_message
             })
 
-            return assistant_message
+            return assistant_message, current_cycle_tokens
 
         except RateLimitError as e:
             if attempt < retries - 1:
