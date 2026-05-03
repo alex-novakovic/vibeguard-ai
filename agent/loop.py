@@ -13,6 +13,7 @@ agent_state = {
     "phase": PHASE_SCOPING,
     "conversation_history": [],  # used during scoping only
     "project_state": None,       # set after scoping completes
+    "current_cycle_tokens":0             # track tokens used
 }
 
 
@@ -35,8 +36,15 @@ def _finish_scoping() -> str:
 
     # update agent state
     # or maybe write this info into the ProjectState? and WHO will write it?
+    # agent_state["project_state"].update_state(vision_doc, [], None, 0)
     agent_state["phase"] = PHASE_GUARDIAN
-    agent_state["project_state"].update_state(vision_doc, [], None, 0)
+    agent_state["project_state"] = ProjectState(
+        vision_doc=vision_doc,
+        feature_log=[],
+    )
+    
+    # set total tokens after creation
+    agent_state["project_state"].current_cycle_tokens = agent_state["current_cycle_tokens"]
 
     # log the scoping API call
     '''
@@ -53,25 +61,26 @@ def _finish_scoping() -> str:
     return vision_doc
 
 
-def _handle_scoping_phase(user_message: str) -> str:
+def _handle_scoping_phase(user_message: str) -> tuple [str,int]:
     """
     Handles a conversation turn during the scoping phase.
     Appends to history and checks for completion.
     """
     # get response from model
-    response = run_conversation_turn(user_message)
+    response, current_cycle_tokens = run_conversation_turn(user_message)
 
     # store turn in conversation history
     agent_state["conversation_history"].append({"role": "user", "content": user_message})
     agent_state["conversation_history"].append({"role": "model", "content": response})
+    agent_state["current_cycle_tokens"] += current_cycle_tokens if current_cycle_tokens else 0
 
     # check if scoping is done
     if _detect_scoping_complete(response):
         _finish_scoping()
         clean_response = response.replace("SCOPING_COMPLETE", "").strip()
-        return clean_response + "\n\n✅ Scoping complete! Your vision doc has been saved."
+        return clean_response + "\n\n✅ Scoping complete! Your vision doc has been saved.", agent_state["current_cycle_tokens"]
 
-    return response
+    return response, agent_state["current_cycle_tokens"]
 
 
 def _handle_guardian_phase(user_message: str) -> str:
@@ -89,7 +98,7 @@ def _handle_guardian_phase(user_message: str) -> str:
     )
 
 
-def run_agent(user_message: str, status: str, project_state: ProjectState) -> str:
+def run_agent(user_message: str, status: str, project_state: ProjectState) -> tuple[str,int]:
     """
     Main entry point. Member C calls this from Gradio.
     Routes user message to the correct phase handler.
