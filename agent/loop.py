@@ -2,8 +2,7 @@ import os
 import json
 from datetime import datetime, timezone
 from agent.scoping import run_conversation_turn, scoping_session
-# from data.logger import log_llm_call
-from data.state import load_project_state
+from data.state import ProjectState
 
 # phase constants
 PHASE_SCOPING = "scoping"
@@ -37,12 +36,7 @@ def _finish_scoping() -> str:
     # update agent state
     # or maybe write this info into the ProjectState? and WHO will write it?
     agent_state["phase"] = PHASE_GUARDIAN
-    agent_state["project_state"] = {
-        "vision_doc": vision_doc,
-        "feature_log": [],
-        "active_feature_id": None,
-        "current_cycle_tokens": 0,
-    }
+    agent_state["project_state"].update_state(vision_doc, [], None, 0)
 
     # log the scoping API call
     '''
@@ -90,12 +84,12 @@ def _handle_guardian_phase(user_message: str) -> str:
     # when Member A builds those in the next task
     return (
         f"[Guardian mode active] I see you're working on: "
-        f"{agent_state['project_state']['vision_doc'].get('product_name', 'your project')}. "
+        f"{agent_state['project_state'].vision_doc.get('product_name', 'your project')}. "
         f"Guardian features coming soon."
     )
 
 
-def run_agent(user_message: str) -> str:
+def run_agent(user_message: str, status: str, project_state: ProjectState) -> str:
     """
     Main entry point. Member C calls this from Gradio.
     Routes user message to the correct phase handler.
@@ -109,15 +103,13 @@ def run_agent(user_message: str) -> str:
     if not user_message or not user_message.strip():
         return "Please type a message to get started."
 
-    status, state = load_project_state()  # Member B's function
-
     if status == "new":
         agent_state["phase"] = PHASE_SCOPING
         return _handle_scoping_phase(user_message)
 
     elif status == "existing":
         agent_state["phase"] = PHASE_GUARDIAN
-        agent_state["project_state"] = state  # already loaded, ready to use
+        agent_state["project_state"] = project_state  # already loaded, ready to use
         return _handle_guardian_phase(user_message)
     else:
         return "Unknown agent phase. Please restart the session."
