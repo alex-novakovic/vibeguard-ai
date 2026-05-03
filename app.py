@@ -13,9 +13,9 @@ agent: AgentFunctions = FakeAgentFunctions()
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
 
-def on_startup(state):
-    result = storage.load_or_create_project(state)
-    if result == "existing":
+def on_startup():
+    status, state = storage.load_or_create_project()
+    if status == "existing":
         return (
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
             state.vision_doc,
@@ -31,14 +31,15 @@ def on_startup(state):
 
 
 def on_send(message, history):
-    response = run_agent(message)
+    status, state = storage.load_or_create_project()
+    response = run_agent(message, status, state)
     history = history + [
         {"role": "user", "content": message},
         {"role": "assistant", "content": response},
     ]
 
     if agent_state["phase"] == PHASE_GUARDIAN:
-        vision_doc = agent_state["project_state"]["vision_doc"]
+        vision_doc = agent_state["project_state"].vision_doc
         log_path = storage.initialize_feature_log(vision_doc)
         log_data = json.loads(Path(log_path).read_text())
         return history, history, "", vision_doc, log_data
@@ -49,7 +50,6 @@ def on_send(message, history):
 with gr.Blocks(title="VibeGuard AI") as demo:
     history_state = gr.State([])
     phase_state   = gr.State("scoping")
-    project_state = gr.State(DevProjectState())
 
     gr.Markdown("# VibeGuard AI\n*Stop tinkering. Start shipping.*")
 
@@ -88,7 +88,7 @@ with gr.Blocks(title="VibeGuard AI") as demo:
     )
     demo.load(
         on_startup,
-        inputs=[project_state],
+        inputs=[],
         outputs=[chatbot, vision_display, log_display, phase_state],
     )
 
