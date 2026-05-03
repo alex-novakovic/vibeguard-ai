@@ -1,8 +1,9 @@
 import os
 import json
 from datetime import datetime, timezone
-from agent.scoping import run_conversation_turn, scoping_session, summary_memory
-from data.logger import log_llm_call
+from agent.scoping import run_conversation_turn, scoping_session
+# from data.logger import log_llm_call
+from data.state import load_project_state
 
 # phase constants
 PHASE_SCOPING = "scoping"
@@ -33,15 +34,8 @@ def _finish_scoping() -> str:
     """
     vision_doc = scoping_session()
 
-    # save vision doc to disk
-    logs_dir = os.path.join(os.path.dirname(__file__), "..", "data", "logs")
-    os.makedirs(logs_dir, exist_ok=True)
-    vision_path = os.path.join(logs_dir, "vision_doc.json")
-
-    with open(vision_path, "w") as f:
-        json.dump(vision_doc, f, indent=2)
-
     # update agent state
+    # or maybe write this info into the ProjectState? and WHO will write it?
     agent_state["phase"] = PHASE_GUARDIAN
     agent_state["project_state"] = {
         "vision_doc": vision_doc,
@@ -115,11 +109,19 @@ def run_agent(user_message: str) -> str:
     if not user_message or not user_message.strip():
         return "Please type a message to get started."
 
-    if agent_state["phase"] == PHASE_SCOPING:
+    status, state = load_project_state()  # Member B's function
+
+    if status == "new":
+        agent_state["phase"] = PHASE_SCOPING
         return _handle_scoping_phase(user_message)
 
-    elif agent_state["phase"] == PHASE_GUARDIAN:
+    elif status == "existing":
+        agent_state["phase"] = PHASE_GUARDIAN
+        agent_state["project_state"] = state  # already loaded, ready to use
         return _handle_guardian_phase(user_message)
-
     else:
         return "Unknown agent phase. Please restart the session."
+    
+    
+
+    

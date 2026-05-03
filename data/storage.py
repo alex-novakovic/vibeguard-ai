@@ -2,6 +2,10 @@ import json
 import os
 from data.validate import validate_vision_doc
 
+from data.state import ProjectState
+
+
+
 
 def initialize_feature_log(vision_doc: dict) -> str:
     
@@ -37,3 +41,29 @@ def initialize_feature_log(vision_doc: dict) -> str:
         json.dump(feature_log, f, indent=2)
 
     return feature_log_path  # ← kraj funkcije
+
+
+
+def load_or_create_project() -> str:
+    
+    vision_path = "data/logs/vision.json"
+    feature_log_path = "data/logs/feature_log.json"
+    
+    # Check if vision.json exists on startup
+    if os.path.exists(vision_path) and os.path.exists(feature_log_path):
+        
+        # Load vision.json from disk into dict
+        with open(vision_path, "r") as f:
+            vision_doc = json.load(f)
+        
+        # Load feature_log.json from disk into dict
+        with open(feature_log_path, "r") as f:
+            feature_log = json.load(f)
+        
+        # Populate ProjectState with existing data
+        state = ProjectState(vision_doc, feature_log)
+        
+        return "existing", state
+    
+    # vision.json does not exist — signal Gradio to start scoping
+    return "new", None
