@@ -45,8 +45,6 @@ def run_conversation_turn(user_message: str, retries: int = 3) -> str:
             # extract token usage
             current_cycle_tokens = response.usage.total_tokens if response.usage else None
 
-            # TODO: log_llm_call() here
-
             chat_messages.append({
                 "role": "assistant",
                 "content": assistant_message

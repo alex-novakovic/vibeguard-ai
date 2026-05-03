@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from agent.scoping import run_conversation_turn, scoping_session
 from data.state import ProjectState
+from data.logger import log_llm_call
 
 # phase constants
 PHASE_SCOPING = "scoping"
@@ -47,21 +48,19 @@ def _finish_scoping() -> str:
     agent_state["project_state"].current_cycle_tokens = agent_state["current_cycle_tokens"]
 
     # log the scoping API call
-    '''
+    # def log_llm_call(function_name: str, prompt: str, response: str, tokens: int):
+    
     log_llm_call(
-        call_type="scoping",
-        model="gemini-2.5-flash-lite",
-        prompt_tokens=0,   # scoping_session doesn't return usage yet
-        response_tokens=0, # Member B can wire this up when ready
-        feature_id=None,
-        response_preview=str(vision_doc)[:100],
+        function_name="scoping_session",
+        prompt="Scoping conversation",
+        response=json.dumps(vision_doc),
+        tokens=agent_state["current_cycle_tokens"]
     )
-    '''
 
     return vision_doc
 
 
-def _handle_scoping_phase(user_message: str) -> tuple [str,int]:
+def _handle_scoping_phase(user_message: str) -> str:
     """
     Handles a conversation turn during the scoping phase.
     Appends to history and checks for completion.
@@ -78,9 +77,9 @@ def _handle_scoping_phase(user_message: str) -> tuple [str,int]:
     if _detect_scoping_complete(response):
         _finish_scoping()
         clean_response = response.replace("SCOPING_COMPLETE", "").strip()
-        return clean_response + "\n\n✅ Scoping complete! Your vision doc has been saved.", agent_state["current_cycle_tokens"]
+        return clean_response + "\n\n✅ Scoping complete! Your vision doc has been saved."
 
-    return response, agent_state["current_cycle_tokens"]
+    return response
 
 
 def _handle_guardian_phase(user_message: str) -> str:
