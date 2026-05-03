@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
 from agent.prompts.pydantic_schemas import VisionDoc
+from data.validate import validate_vision_doc
 
 load_dotenv()
 
@@ -16,10 +17,6 @@ client = OpenAI(
 )
 
 chat_messages = []
-
-# TODO: call log_llm_call() here once Member B defines the signature
-# from data.logger import log_llm_call
-# log_llm_call(...)
 
 def run_conversation_turn(user_message: str, retries: int = 3) -> str:
     global chat_messages
@@ -103,16 +100,15 @@ def scoping_session() -> dict:
                 raw = raw.rsplit("```", 1)[0]
 
             vision_doc = json.loads(raw)
+            vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
 
-            validated = VisionDoc(**vision_doc)
-            result = validated.model_dump()
-            result["createdAt"] = datetime.now(timezone.utc).isoformat()
-            
-    
-            # with open("agent/output/vision_doc.json", "w") as f:
-              #  json.dump(result, f, indent=2)
-
-            return result
+            # Calling Milica's function to validate the structure and content of the vision_doc
+            validate_vision_doc(vision_doc)  
+            return vision_doc                
+        
+            # TODO: ProjectState(vision_doc=vision_doc, feature_log=[], active_feature_id=None)
+            # waiting for Member B to push data/state.py
+            # Milica's task??
 
         except RateLimitError as e:
             if attempt < 2:
