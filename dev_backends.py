@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import os
 
-from interfaces import AgentFunctions, StorageBackend
+from interfaces import AgentFunctions, LoggerBackend, StorageBackend
 
 
 class FakeStorage(StorageBackend):
@@ -80,6 +80,21 @@ class FakeAgentFunctions(AgentFunctions):
             "is_aligned": True,
             "feedback": "This work aligns with your core product goal.",
         }
+
+
+def log_llm_call(function_name: str, prompt: str, response: str, tokens: int) -> None:
+    with open("./data/logs/llm_calls.log", "a") as f:
+        f.write(f"[{datetime.now()}] FUNCTION: {function_name}\n")
+        f.write(f"PROMPT: {prompt}\n")
+        f.write(f"RESPONSE: {response}\n")
+        f.write(f"TOKENS: {tokens}\n")
+        f.write("---\n")
+
+
+class FakeLogger(LoggerBackend):
+
+    def log_llm_call(self, function_name: str, prompt: str, response: str, tokens: int) -> None:
+        log_llm_call(function_name, prompt, response, tokens)
 
 
 class DevProjectState:
