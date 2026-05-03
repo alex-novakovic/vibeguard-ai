@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime, timezone
 from agent.scoping import run_conversation_turn, scoping_session
-from data.logger import log_llm_call
+# from data.logger import log_llm_call
 from data.state import load_project_state
 
 # phase constants
