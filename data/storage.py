@@ -1,10 +1,8 @@
 import json
 import os
 from data.validate import validate_vision_doc
-
 from data.state import ProjectState
-
-
+from datetime import datetime
 
 
 def initialize_feature_log(vision_doc: dict) -> str:
@@ -67,3 +65,41 @@ def load_or_create_project() -> str:
     
     # vision.json does not exist — signal Gradio to start scoping
     return "new", None
+
+def log_feature_cycle(feature_id: str, event: str, token_count: int = 0, alignment_note: str = None) -> dict:
+    
+    feature_log_path = "./data/logs/feature_log.json"
+    
+    # Read feature_log from disk
+    with open(feature_log_path, "r") as f:
+        feature_log = json.load(f)
+    
+    # Get current timestamp
+    now = datetime.now().isoformat()
+    
+    if event == "start":
+        # Update status and record start time
+        feature_log["features"][feature_id]["status"] = "in_progress"
+        feature_log["features"][feature_id]["cycles"].append({
+            "started_at": now,
+            "completed_at": None,
+            "token_count": None,
+            "alignment_note": None
+        })
+    
+    elif event == "complete":
+        # Update status and fill in the last cycle
+        feature_log["features"][feature_id]["status"] = "complete"
+        last_cycle = feature_log["features"][feature_id]["cycles"][-1]
+        last_cycle["completed_at"] = now
+        last_cycle["token_count"] = token_count
+        last_cycle["alignment_note"] = alignment_note
+
+    if event not in ("start", "complete"):
+     raise ValueError(f"Invalid event: {event}. Must be 'start' or 'complete'")    
+    
+    # Write updated feature_log back to disk
+    with open(feature_log_path, "w") as f:
+        json.dump(feature_log, f, indent=2)
+    
+    return feature_log["features"][feature_id]
