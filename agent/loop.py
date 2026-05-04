@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from agent.scoping import ScopingSession
 from data.state import ProjectState
 from data.logger import log_llm_call
+from data.storage import load_or_create_project
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
