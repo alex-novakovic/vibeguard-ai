@@ -15,6 +15,9 @@ from agent.exceptions import (
     EmptyResponse
 )
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
+
+from data.schemas import VisionDoc
+
 from data.validate import validate_vision_doc
 
 # Configure logging
@@ -141,8 +144,8 @@ class ScopingSession:
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
 
-                validate_vision_doc(vision_doc)
-                return vision_doc
+                vision_doc = VisionDoc(**vision_doc)
+                return validate_vision_doc(vision_doc) #this function now both return and validate vision_doc
 
             except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:

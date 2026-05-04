@@ -1,39 +1,35 @@
-VISION_SCHEMA = {
-    "projectName": str,
-    "visionStatement": str,
-    "targetUser": str,
-    "problemStatement": str,
-    "availableTime": (str, type(None)),
-    "availableTimeHours": int,
-    "experienceLevel": (str, type(None)),
-    "successCriteria": str,
-    "constraints": (str, type(None)),
-    "techStack": list,
-    "externalDependencies": list,
-    "niceToHave": list,
-    "backlog": list
-}
+from pydantic import BaseModel
+from typing import Optional, List, Literal
 
-BACKLOG_ITEM_SCHEMA = {
-    "id": str,
-    "name": str,
-    "description": str,
-    "priority": str,
-    "status": str,
-    "estimatedMinutes": int,
-    "dependencies": list,
-    "confidence": str,
-    "scopeFlag": bool,
-    "scopeFlagReason": (str, type(None))
-}
+class BacklogItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    priority: Literal["critical", "high", "medium", "low"]
+    status: Literal["to_do"]
+    estimatedMinutes: int
+    dependencies: List[str]
+    confidence: Literal["high", "low"]
+    scopeFlag: bool
+    scopeFlagReason: Optional[str] = None
 
-FEATURE_LOG_ITEM_SCHEMA = {
-    "name": str,
-    "status": str,
-    "cycles": list,
-    "drift_events": list
-}
+class VisionDoc(BaseModel):
+    projectName: str
+    visionStatement: str
+    targetUser: str
+    problemStatement: str
+    availableTime: Optional[str] = None
+    availableTimeHours: int
+    experienceLevel: Optional[str] = None
+    successCriteria: str
+    constraints: Optional[str] = None
+    techStack: List[str]
+    externalDependencies: List[str]
+    niceToHave: List[str]
+    backlog: List[BacklogItem]
 
-VALID_PRIORITIES = {"critical", "high", "medium", "low"}
-VALID_CONFIDENCE = {"high", "low"}
-VALID_STATUSES = {"to_do", "in_progress", "complete"}
+class FeatureLogItem(BaseModel):
+    name: str
+    status: Literal["to_do", "in_progress", "complete"]
+    cycles: List[dict]
+    drift_events: List[dict]

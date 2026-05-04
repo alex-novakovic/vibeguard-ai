@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import os
+from data.schemas import VisionDoc
 
 from interfaces import AgentFunctions, StorageBackend
 
@@ -25,6 +26,8 @@ class FakeStorage(StorageBackend):
             # Load vision.json from disk into dict
             with open(vision_path, "r") as f:
                 vision_doc = json.load(f)
+            
+            # vision_doc = VisionDoc(**json.load(f))
             
             # Load feature_log.json from disk into dict
             with open(feature_log_path, "r") as f:
