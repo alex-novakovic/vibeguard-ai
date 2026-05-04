@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from agent.scoping import ScopingSession
 from data.state import ProjectState
-from data.logger import log_llm_call
+from data.logger import Logger
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
@@ -15,6 +15,7 @@ class AgentSession:
         self.phase: str = PHASE_SCOPING
         self.scoping: ScopingSession = ScopingSession()
         self.project_state: ProjectState | None = None
+        self.logger: Logger = Logger()
 
     def _detect_scoping_complete(self, response: str) -> bool:
         last_line = response.strip().split("\n")[-1].strip().upper()
@@ -30,7 +31,7 @@ class AgentSession:
         )
         self.project_state.current_cycle_tokens = self.scoping.total_tokens
 
-        log_llm_call(
+        self.logger.log_llm_call(
             function_name="scoping_session",
             prompt="Full scoping conversation",
             response=json.dumps(vision_doc),

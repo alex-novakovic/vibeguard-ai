@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from interfaces import LoggerBackend
 
 def log_llm_call(function_name: str, prompt: str, response: str, tokens: int, session_id: str) -> None:
 
@@ -25,3 +26,16 @@ def log_llm_call(function_name: str, prompt: str, response: str, tokens: int, se
         f.write(f"TOKENS: {tokens}\n")
         f.write(f"SESSION_ID: {session_id}\n")
         f.write("---\n")
+
+
+class Logger(LoggerBackend):
+
+    def log_llm_call(
+        self,
+        function_name: str,
+        prompt: str,
+        response: str,
+        tokens: int,
+        session_id: str,
+    ) -> None:
+        log_llm_call(function_name, prompt, response, tokens, session_id)

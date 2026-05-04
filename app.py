@@ -4,10 +4,10 @@ from pathlib import Path
 
 from agent.loop import run_agent, AgentSession, PHASE_GUARDIAN
 from interfaces import StorageBackend
-from dev_backends import FakeStorage
+from data.storage import Storage
 
 # ── backend injection — swap when Member A/B deliver ─────────────────────────
-storage: StorageBackend = FakeStorage()
+storage: StorageBackend = Storage()
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
@@ -19,38 +19,41 @@ def on_startup():
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
             state.vision_doc,
             state.feature_log,
-            "active",
+            status,
+            state,
         )
     return (
         [{"role": "assistant", "content": WELCOME}],
         None,
         None,
-        "scoping",
+        status,
+        None,
     )
 
 
-async def on_send(message, history, session: AgentSession):
-    status, state = storage.load_or_create_project()
-    response = await run_agent(message, status, state, session)
+async def on_send(message, history, session, status, proj_state, initialized):
+    response = await run_agent(message, status, proj_state, session)
 
     history = history + [
         {"role": "user", "content": message},
         {"role": "assistant", "content": response},
     ]
-    
-    if session.phase == PHASE_GUARDIAN and session.project_state:
+
+    if session.phase == PHASE_GUARDIAN and session.project_state and not initialized:
         vision_doc = session.project_state.vision_doc
         log_path = storage.initialize_feature_log(vision_doc)
         log_data = json.loads(Path(log_path).read_text())
-        return history, history, "", vision_doc, log_data
+        return history, history, "", vision_doc, log_data, True, "existing", session.project_state
 
-    return history, history, "", gr.update(), gr.update()
+    return history, history, "", gr.update(), gr.update(), initialized, status, proj_state
 
 
 with gr.Blocks(title="VibeGuard AI") as demo:
-    session_state = gr.State(AgentSession)
-    history_state = gr.State([])
-    phase_state   = gr.State("scoping")
+    session_state     = gr.State(AgentSession())  # instance, not class
+    history_state     = gr.State([])
+    status_state      = gr.State("new")           # "new" | "existing" from load_or_create_project
+    proj_state_state  = gr.State(None)            # ProjectState object from Member B
+    initialized_state = gr.State(False)           # True after initialize_feature_log is called
 
     gr.Markdown("# VibeGuard AI\n*Stop tinkering. Start shipping.*")
 
@@ -77,20 +80,15 @@ with gr.Blocks(title="VibeGuard AI") as demo:
             with gr.Accordion("Feature Log", open=True):
                 log_display = gr.JSON(label=None, value=None)
 
-    send_btn.click(
-        on_send,
-        inputs=[msg_input, history_state, session_state],
-        outputs=[chatbot, history_state, msg_input, vision_display, log_display],
-    )
-    msg_input.submit(
-        on_send,
-        inputs=[msg_input, history_state, session_state],
-        outputs=[chatbot, history_state, msg_input, vision_display, log_display],
-    )
+    _send_inputs  = [msg_input, history_state, session_state, status_state, proj_state_state, initialized_state]
+    _send_outputs = [chatbot, history_state, msg_input, vision_display, log_display, initialized_state, status_state, proj_state_state]
+
+    send_btn.click(on_send, inputs=_send_inputs, outputs=_send_outputs)
+    msg_input.submit(on_send, inputs=_send_inputs, outputs=_send_outputs)
     demo.load(
         on_startup,
         inputs=[],
-        outputs=[chatbot, vision_display, log_display, phase_state],
+        outputs=[chatbot, vision_display, log_display, status_state, proj_state_state],
     )
 
 if __name__ == "__main__":

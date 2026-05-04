@@ -36,6 +36,7 @@ class LoggerBackend(ABC):
         prompt: str,
         response: str,
         tokens: int,
+        session_id: str,
     ) -> None:
         """Append an LLM call record to the log file."""
         ...

@@ -1,8 +1,8 @@
 import json
 import os
 from data.validate import validate_vision_doc
-
 from data.state import ProjectState
+from interfaces import StorageBackend
 
 
 
@@ -67,3 +67,21 @@ def load_or_create_project() -> str:
     
     # vision.json does not exist — signal Gradio to start scoping
     return "new", None
+
+
+class Storage(StorageBackend):
+
+    def initialize_feature_log(self, vision_doc: dict) -> str:
+        return initialize_feature_log(vision_doc)
+
+    def load_or_create_project(self) -> tuple:
+        return load_or_create_project()
+
+    def log_feature_cycle(
+        self,
+        _feature_id: str,
+        _event: str,
+        _token_count: int = 0,
+        _alignment_note: str = None,
+    ) -> dict:
+        raise NotImplementedError("log_feature_cycle is pending PR merge")
