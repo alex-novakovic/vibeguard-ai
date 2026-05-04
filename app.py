@@ -2,13 +2,12 @@ import gradio as gr
 import json
 from pathlib import Path
 
-from agent.loop import run_agent, agent_state, PHASE_GUARDIAN
-from interfaces import AgentFunctions, StorageBackend
-from dev_backends import DevProjectState, FakeAgentFunctions, FakeStorage
+from agent.loop import run_agent, AgentSession, PHASE_GUARDIAN
+from interfaces import StorageBackend
+from dev_backends import FakeStorage
 
-# ── backend injection — swap these two lines when Member A/B deliver ──────────
+# ── backend injection — swap when Member A/B deliver ─────────────────────────
 storage: StorageBackend = FakeStorage()
-agent: AgentFunctions = FakeAgentFunctions()
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
@@ -30,16 +29,17 @@ def on_startup():
     )
 
 
-def on_send(message, history):
+async def on_send(message, history, session: AgentSession):
     status, state = storage.load_or_create_project()
-    response = run_agent(message, status, state)
+    response = await run_agent(message, status, state, session)
+
     history = history + [
         {"role": "user", "content": message},
         {"role": "assistant", "content": response},
     ]
-
-    if agent_state["phase"] == PHASE_GUARDIAN:
-        vision_doc = agent_state["project_state"].vision_doc
+    
+    if session.phase == PHASE_GUARDIAN and session.project_state:
+        vision_doc = session.project_state.vision_doc
         log_path = storage.initialize_feature_log(vision_doc)
         log_data = json.loads(Path(log_path).read_text())
         return history, history, "", vision_doc, log_data
@@ -48,6 +48,7 @@ def on_send(message, history):
 
 
 with gr.Blocks(title="VibeGuard AI") as demo:
+    session_state = gr.State(AgentSession)
     history_state = gr.State([])
     phase_state   = gr.State("scoping")
 
@@ -78,12 +79,12 @@ with gr.Blocks(title="VibeGuard AI") as demo:
 
     send_btn.click(
         on_send,
-        inputs=[msg_input, history_state],
+        inputs=[msg_input, history_state, session_state],
         outputs=[chatbot, history_state, msg_input, vision_display, log_display],
     )
     msg_input.submit(
         on_send,
-        inputs=[msg_input, history_state],
+        inputs=[msg_input, history_state, session_state],
         outputs=[chatbot, history_state, msg_input, vision_display, log_display],
     )
     demo.load(
