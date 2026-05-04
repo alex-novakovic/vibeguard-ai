@@ -17,6 +17,8 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1"
 )
 
+CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
+PARSING_MODEL = os.getenv("PARSING_MODEL", "anthropic/claude-3-haiku")
 
 class ScopingSession:
     """
@@ -55,7 +57,7 @@ class ScopingSession:
             try:
                 response = await asyncio.to_thread(
                     client.chat.completions.create,
-                    model="google/gemini-2.0-flash-lite-001",
+                    model=CONVERSATION_MODEL,
                     messages=self.chat_messages,
                     temperature=0.7,
                 )
@@ -91,7 +93,7 @@ class ScopingSession:
             try:
                 response = await asyncio.to_thread(
                     client.chat.completions.create,
-                    model="anthropic/claude-3-haiku",
+                    model=PARSING_MODEL,
                     messages=[
                         {
                             "role": "system",
