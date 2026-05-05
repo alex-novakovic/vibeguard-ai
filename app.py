@@ -40,7 +40,7 @@ async def on_send(message, history, session: AgentSession):
     
     if session.phase == PHASE_GUARDIAN and session.project_state:
         vision_doc = session.project_state.vision_doc
-        log_path = storage.initialize_feature_log(vision_doc) #log_path = storage.initialize_feature_log(vision_doc.model_dump())
+        log_path = storage.initialize_feature_log(vision_doc.model_dump())
         log_data = json.loads(Path(log_path).read_text())
         return history, history, "", vision_doc, log_data
 

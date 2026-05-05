@@ -14,6 +14,7 @@ class BacklogItem(BaseModel):
     scopeFlagReason: Optional[str] = None
 
 class VisionDoc(BaseModel):
+    createdAt: str
     projectName: str
     visionStatement: str
     targetUser: str
@@ -29,6 +30,7 @@ class VisionDoc(BaseModel):
     backlog: List[BacklogItem]
 
 class FeatureLogItem(BaseModel):
+    model_config = {"frozen": False} #allow mutation for in-place updates
     name: str
     status: Literal["to_do", "in_progress", "complete"]
     cycles: List[dict]

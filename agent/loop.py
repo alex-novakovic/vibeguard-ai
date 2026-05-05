@@ -6,6 +6,9 @@ from agent.scoping import ScopingSession
 from data.state import ProjectState
 from data.logger import log_llm_call
 from data.storage import initialize_feature_log
+
+from data.storage import initialize_feature_log
+
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
 
@@ -159,7 +162,9 @@ class AgentSession:
     async def _finish_scoping(self):
         vision_doc = await self.scoping.scoping_session()
 
-        initialize_feature_log(vision_doc.model_dump())
+
+        initialize_feature_log(vision_doc.model_dump()) #added
+
 
         self.phase = PHASE_GUARDIAN
         self.project_state = ProjectState(
@@ -171,7 +176,9 @@ class AgentSession:
         log_llm_call(
             function_name="scoping_session",
             prompt="Full scoping conversation",
-            response=json.dumps(vision_doc.model_dump()), #adjusted to pydantic
+
+            response=json.dumps(vision_doc.model_dump()),  #adjusted to pydantic
+
             tokens=self.scoping.total_tokens,
             session_id=self.session_id,
         )

@@ -16,6 +16,9 @@ from agent.exceptions import (
 )
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
 
+
+from data.schemas import VisionDoc
+ 
 from data.schemas import VisionDoc
 
 from data.validate import validate_vision_doc

@@ -10,7 +10,7 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def load_or_create_project(self, state) -> str: #def load_or_create_project(self) -> tuple:
+    def load_or_create_project(self, state) -> tuple: #def load_or_create_project(self) -> tuple:
         """Check if vision.json exists. Returns 'existing' or 'new'."""
         ...
 
