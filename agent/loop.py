@@ -1,8 +1,11 @@
 import json
 import uuid
 from typing import TypedDict, Literal
+from anyio import Path
 from langgraph.graph import StateGraph, END
 from agent.scoping import ScopingSession
+import data
+import data
 from data.state import ProjectState
 from data.logger import Logger
 from data.storage import Storage
@@ -166,6 +169,7 @@ class AgentSession:
         storage.initialize_feature_log(vision_doc.model_dump()) #added
 
 
+
         self.phase = PHASE_GUARDIAN
         self.project_state = ProjectState(
             vision_doc=vision_doc,
@@ -177,7 +181,7 @@ class AgentSession:
             function_name="scoping_session",
             prompt="Full scoping conversation",
 
-            response=json.dumps(vision_doc.model_dump()),  #adjusted to pydantic
+            response=json.dumps(vision_doc.model_dump()),  #adjusted to pydantic, loggs json
 
             tokens=self.scoping.total_tokens,
             session_id=self.session_id,

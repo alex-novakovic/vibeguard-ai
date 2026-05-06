@@ -95,6 +95,7 @@ with gr.Blocks(title="VibeGuard AI") as demo:
     proj_state_state  = gr.State(None)            # ProjectState object from Member B
     initialized_state = gr.State(False)           # True after initialize_feature_log is called
 
+
     gr.Markdown("# VibeGuard AI\n*Stop tinkering. Start shipping.*")
 
     with gr.Row():

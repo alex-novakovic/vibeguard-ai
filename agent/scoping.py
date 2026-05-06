@@ -141,7 +141,14 @@ class ScopingSession:
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
 
+
                 return VisionDoc(**vision_doc)
+                
+                ''' CHANGED
+                vision_doc = VisionDoc(**vision_doc)
+                return validate_vision_doc(vision_doc) #this function now both return and validate vision_doc
+                '''        
+
 
             except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:
