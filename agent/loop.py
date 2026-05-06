@@ -55,10 +55,10 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
     )
     project_state.current_cycle_tokens = scoping.total_tokens
 
-    state.logger.log_llm_call(
+    state["logger"].log_llm_call(
         function_name="scoping_session",
         prompt="Full scoping conversation",
-        response=json.dumps(vision_doc),
+        response=json.dumps(vision_doc.model_dump()),
         tokens=scoping.total_tokens,
         session_id=state["session_id"],
     )
