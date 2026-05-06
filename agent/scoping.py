@@ -1,14 +1,30 @@
 import os
-import time
 import json
 import random
+import logging
+import asyncio
 from datetime import datetime, timezone
 from dotenv import load_dotenv
-from openai import OpenAI, RateLimitError
+from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
+
+# Importing your specific exception classes
+from agent.exceptions import (
+    RateLimitReached, 
+    ModelTimeout, 
+    ParsingFailed, 
+    EmptyResponse
+)
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
-from agent.prompts.pydantic_schemas import VisionDoc
 from data.validate import validate_vision_doc
-import asyncio
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+logger = logging.getLogger("ScopingSession")
 
 load_dotenv()
 
@@ -23,8 +39,6 @@ PARSING_MODEL = os.getenv("PARSING_MODEL", "anthropic/claude-3-haiku")
 class ScopingSession:
     """
     Encapsulates all state for one user's scoping conversation.
-    Replaces the global chat_messages list.
-    One instance per user — no shared state between users.
     """
 
     def __init__(self):
@@ -45,11 +59,16 @@ class ScopingSession:
             if msg["role"] != "system"
         )
 
-    async def run_conversation_turn(self, user_message: str, retries: int = 3) -> tuple[str, int]:
-        """
-        Sends one message, gets one response.
-        Returns (response_text, tokens_used).
-        """
+    async def _handle_backoff(self, attempt: int, error: Exception):
+        """Implements exponential backoff with jitter."""
+        wait = (2 ** attempt) + random.uniform(0, 1)
+        if isinstance(error, RateLimitError):
+            wait = 60 * (2 ** attempt) + random.uniform(0, 5)
+            
+        logger.warning(f"Retrying in {wait:.2f}s due to {type(error).__name__}: {error}")
+        await asyncio.sleep(wait)
+
+    async def run_conversation_turn(self, user_message: str, retries: int = 3) -> str:
         self._ensure_system_prompt()
         self.chat_messages.append({"role": "user", "content": user_message})
 
@@ -60,9 +79,14 @@ class ScopingSession:
                     model=CONVERSATION_MODEL,
                     messages=self.chat_messages,
                     temperature=0.7,
+                    timeout=30.0 
                 )
 
                 assistant_message = response.choices[0].message.content
+                
+                if not assistant_message:
+                    raise EmptyResponse("Model returned an empty response.")
+
                 tokens = response.usage.total_tokens if response.usage else 0
 
                 self.chat_messages.append({
@@ -73,19 +97,15 @@ class ScopingSession:
                 self.total_tokens += tokens
                 return assistant_message
 
-            except RateLimitError:
+            except (RateLimitError, APITimeoutError, APIConnectionError) as e:
                 if attempt < retries - 1:
-                    wait = 60 * (2 ** attempt) + random.uniform(0, 5)
-                    print(f"Rate limit hit, retrying in {wait:.1f}s... (attempt {attempt + 1}/{retries})")
-                    await asyncio.sleep(wait)
+                    await self._handle_backoff(attempt, e)
                 else:
-                    raise
+                    if isinstance(e, RateLimitError):
+                        raise RateLimitReached("Rate limit hit after all retries.") from e
+                    raise ModelTimeout("Model timed out after all retries.") from e
 
     async def scoping_session(self) -> dict:
-        """
-        Parses the completed conversation into a structured vision doc.
-        Called once when scoping is complete.
-        """
         transcript = self.get_transcript()
         filled_prompt = PARSING_PROMPT.replace("{transcript}", transcript)
 
@@ -113,11 +133,10 @@ class ScopingSession:
                 self.total_tokens += tokens
 
                 if not raw:
-                    raise ValueError("Empty response.")
+                    raise EmptyResponse("AI returned an empty response body.")
 
                 if raw.strip().startswith("```"):
-                    raw = raw.split("\n", 1)[-1]
-                    raw = raw.rsplit("```", 1)[0]
+                    raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
@@ -125,16 +144,18 @@ class ScopingSession:
                 validate_vision_doc(vision_doc)
                 return vision_doc
 
-            except RateLimitError:
+            except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:
-                    wait = 60 * (2 ** attempt) + random.uniform(0, 5)
-                    print(f"Rate limit hit, retrying in {wait:.1f}s...")
-                    await asyncio.sleep(wait)
+                    await self._handle_backoff(attempt, e)
                 else:
-                    raise
-            except (json.JSONDecodeError, Exception) as e:
+                    if isinstance(e, RateLimitError):
+                        raise RateLimitReached("Rate limit hit during parsing.") from e
+                    raise ModelTimeout("Model timed out during parsing.") from e
+            except (json.JSONDecodeError, TypeError):
                 if attempt < 2:
-                    print(f"Parsing failed, retrying... ({e})")
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(2)
                 else:
-                    raise ValueError(f"Failed to parse vision_doc after {attempt + 1} attempts: {e}")
+                    raise ParsingFailed("Failed to parse valid vision doc JSON.")
+            except Exception as e:
+                logger.exception("Unexpected error during scoping session")
+                raise
