@@ -10,7 +10,7 @@ class Logger(LoggerBackend):
         prompt: str,
         response: str,
         tokens: int,
-        session_id: str,
+        session_id: str=None,
     ) -> None:
         
         # Validate inputs
