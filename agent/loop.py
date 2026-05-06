@@ -5,6 +5,8 @@ from langgraph.graph import StateGraph, END
 from agent.scoping import ScopingSession
 from data.state import ProjectState
 from data.logger import log_llm_call
+from data.storage import initialize_feature_log
+
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
@@ -151,6 +153,60 @@ class AgentSession:
         self.scoping: ScopingSession = ScopingSession()
         self.project_state: ProjectState | None = None
 
+
+    def _detect_scoping_complete(self, response: str) -> bool:
+        last_line = response.strip().split("\n")[-1].strip().upper()
+        return last_line == "SCOPING_COMPLETE"
+
+    async def _finish_scoping(self):
+        vision_doc = await self.scoping.scoping_session()
+
+
+        initialize_feature_log(vision_doc.model_dump()) #added
+
+
+        self.phase = PHASE_GUARDIAN
+        self.project_state = ProjectState(
+            vision_doc=vision_doc,
+            feature_log={}, ##adjusted to pydantic
+        )
+        self.project_state.current_cycle_tokens = self.scoping.total_tokens
+
+        log_llm_call(
+            function_name="scoping_session",
+            prompt="Full scoping conversation",
+
+            response=json.dumps(vision_doc.model_dump()),  #adjusted to pydantic
+
+            tokens=self.scoping.total_tokens,
+            session_id=self.session_id,
+        )
+
+    async def _handle_scoping_phase(self, user_message: str) -> str:
+        response = await self.scoping.run_conversation_turn(user_message)
+        
+        # If we want to log each turn with tokens
+        '''
+        log_llm_call(
+            function_name="run_conversation_turn",
+            prompt=user_message,
+            response=response,
+            tokens=self.scoping.last_turn_tokens,
+            session_id=self.session_id,
+        )
+        '''
+
+        if self._detect_scoping_complete(response):
+            await self._finish_scoping()
+            clean_response = response.replace("SCOPING_COMPLETE", "").strip()
+            return clean_response + "\n\n✅ Scoping complete! Your vision doc has been saved."
+
+        return response
+
+    async def _handle_guardian_phase(self, user_message: str) -> str:
+        # TODO: wire in suggest_next_task() and monitor_for_drift()
+        project_name = self.project_state.vision_doc.projectName #adjusted to pydantic
+        return f"[Guardian mode active] Working on: {project_name}. Guardian features coming soon."
 
 # ── 6. run_agent — same signature as before ───────────────────────────────────
 

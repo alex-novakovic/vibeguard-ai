@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
-
+from data.schemas import VisionDoc
 
 class StorageBackend(ABC):
     """Interface for Member B's storage layer (data/storage.py, data/state.py)."""
 
     @abstractmethod
-    def initialize_feature_log(self, vision_doc: dict) -> str:
+    def initialize_feature_log(self, vision_doc: VisionDoc) -> str:
         """Create feature_log.json from vision_doc. Returns the file path."""
         ...
 
     @abstractmethod
-    def load_or_create_project(self, state) -> str:
+    def load_or_create_project(self, state) -> tuple: #def load_or_create_project(self) -> tuple:
         """Check if vision.json exists. Returns 'existing' or 'new'."""
         ...
 

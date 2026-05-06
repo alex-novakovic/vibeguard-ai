@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
 
-def log_llm_call(function_name: str, prompt: str, response: str, tokens: int, session_id: str) -> None:
+def log_llm_call(function_name: str, prompt: str, response: str, tokens: int, session_id: str=None) -> None:
 
         
     # Validate inputs
