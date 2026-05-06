@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
 
 # Importing your specific exception classes
-from agent.exceptions import (
+from utils.exceptions import (
     RateLimitReached, 
     ModelTimeout, 
     ParsingFailed, 
