@@ -1,7 +1,6 @@
 import json
 import os
 from data.schemas import VisionDoc
-from data.validate import validate_vision_doc
 from data.state import ProjectState
 from interfaces import StorageBackend
 from datetime import datetime
@@ -10,9 +9,6 @@ from data.schemas import FeatureLogItem
 class Storage(StorageBackend):
 
     def initialize_feature_log(self, vision_doc: VisionDoc) -> str:
-
-        vision_doc = validate_vision_doc(vision_doc)  # dict → VisionDoc
-        
         
         logs_dir = "data/logs" # save path to the log folder
         vision_path = os.path.join(logs_dir, "vision.json") # save path to the vision.json file

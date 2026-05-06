@@ -17,7 +17,7 @@ def on_startup():
     if status == "existing":
         return (
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
-            state.vision_doc,
+            state.vision_doc.model_dump(),
             state.feature_log,
             status,
             state,
@@ -41,9 +41,9 @@ async def on_send(message, history, session, status, proj_state, initialized):
 
     if session.phase == PHASE_GUARDIAN and session.project_state and not initialized:
         vision_doc = session.project_state.vision_doc
-        log_path = storage.initialize_feature_log(vision_doc.model_dump())
+        log_path = storage.initialize_feature_log(vision_doc)
         log_data = json.loads(Path(log_path).read_text())
-        return history, history, "", vision_doc, log_data, True, "existing", session.project_state
+        return history, history, "", vision_doc.model_dump(), log_data, True, "existing", session.project_state
 
     return history, history, "", gr.update(), gr.update(), initialized, status, proj_state
 
