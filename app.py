@@ -35,7 +35,7 @@ def on_startup():
     if status == "existing":
         return (
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
-            state.vision_doc,
+            state.vision_doc.model_dump(),
             state.feature_log,
             status,
             state,

@@ -3,7 +3,6 @@ import os
 from datetime import datetime, timezone
 from pydantic import ValidationError
 from data.schemas import VisionDoc, FeatureLogItem
-from data.validate import validate_vision_doc
 from data.state import ProjectState
 from interfaces import StorageBackend
 
@@ -17,11 +16,6 @@ from utils.exceptions import (
 class Storage(StorageBackend):
 
     def initialize_feature_log(self, vision_doc: VisionDoc) -> str:
-
-        try:
-            vision_doc = validate_vision_doc(vision_doc)
-        except ValueError as e:
-            raise ValueError(f"Invalid vision document: {e}") from e
 
         logs_dir = "data/logs"
         vision_path = os.path.join(logs_dir, "vision.json")
