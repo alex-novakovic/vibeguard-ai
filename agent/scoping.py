@@ -15,9 +15,6 @@ from agent.exceptions import (
     EmptyResponse
 )
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
-
-
-from data.schemas import VisionDoc
  
 from data.schemas import VisionDoc
 
