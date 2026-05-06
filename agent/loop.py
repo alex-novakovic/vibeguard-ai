@@ -7,7 +7,6 @@ from data.state import ProjectState
 from data.logger import log_llm_call
 from data.storage import initialize_feature_log
 
-from data.storage import initialize_feature_log
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
