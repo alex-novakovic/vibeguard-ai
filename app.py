@@ -5,15 +5,33 @@ from pathlib import Path
 from agent.loop import run_agent, AgentSession, PHASE_GUARDIAN
 from interfaces import StorageBackend
 from data.storage import Storage
+from utils.exceptions import (
+    VibeGuardError,
+    RateLimitReached,
+    ModelTimeout,
+    EmptyResponse,
+    ParsingFailed,
+    FileSystemError,
+)
 
-# ── backend injection — swap when Member A/B deliver ─────────────────────────
 storage: StorageBackend = Storage()
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
 
 def on_startup():
-    status, state = storage.load_or_create_project()
+    try:
+        status, state = storage.load_or_create_project()
+    except ParsingFailed as e:
+        msg = f"⚠️ Saved project files are corrupted and could not be loaded: {e}"
+        return [{"role": "assistant", "content": msg}], None, None, "new", None
+    except FileSystemError as e:
+        msg = f"⚠️ Failed to read project files from disk: {e}"
+        return [{"role": "assistant", "content": msg}], None, None, "new", None
+    except VibeGuardError as e:
+        msg = f"⚠️ Unexpected error on startup: {e}"
+        return [{"role": "assistant", "content": msg}], None, None, "new", None
+
     if status == "existing":
         return (
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
@@ -32,7 +50,25 @@ def on_startup():
 
 
 async def on_send(message, history, session, status, proj_state, initialized):
-    response = await run_agent(message, status, proj_state, session)
+    def _agent_error(msg):
+        err_history = history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": msg},
+        ]
+        return err_history, err_history, "", gr.update(), gr.update(), initialized, status, proj_state
+
+    try:
+        response = await run_agent(message, status, proj_state, session)
+    except RateLimitReached:
+        return _agent_error("⚠️ Rate limit reached. Please wait a moment and try again.")
+    except ModelTimeout:
+        return _agent_error("⚠️ The AI took too long to respond. Please try again.")
+    except EmptyResponse:
+        return _agent_error("⚠️ The AI returned an empty response. Please try again.")
+    except ParsingFailed:
+        return _agent_error("⚠️ Failed to parse the AI's response. Please try again.")
+    except VibeGuardError as e:
+        return _agent_error(f"⚠️ An error occurred: {e}")
 
     history = history + [
         {"role": "user", "content": message},
@@ -41,9 +77,13 @@ async def on_send(message, history, session, status, proj_state, initialized):
 
     if session.phase == PHASE_GUARDIAN and session.project_state and not initialized:
         vision_doc = session.project_state.vision_doc
-        log_path = storage.initialize_feature_log(vision_doc.model_dump())
-        log_data = json.loads(Path(log_path).read_text())
-        return history, history, "", vision_doc, log_data, True, "existing", session.project_state
+        try:
+            log_path = storage.initialize_feature_log(vision_doc)
+            log_data = json.loads(Path(log_path).read_text())
+            return history, history, "", vision_doc.model_dump(), log_data, True, "existing", session.project_state
+        except (FileSystemError, ValueError) as e:
+            err_history = history + [{"role": "assistant", "content": f"⚠️ Failed to save project files: {e}"}]
+            return err_history, err_history, "", gr.update(), gr.update(), initialized, status, proj_state
 
     return history, history, "", gr.update(), gr.update(), initialized, status, proj_state
 

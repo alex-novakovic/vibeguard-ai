@@ -1,4 +1,4 @@
-# agent/exceptions.py
+# utils/exceptions.py
 
 class VibeGuardError(Exception):
     """Base exception for all VibeGuard errors."""
@@ -13,9 +13,21 @@ class ModelTimeout(VibeGuardError):
     pass
 
 class ParsingFailed(VibeGuardError):
-    """Failed to parse valid vision doc JSON."""
+    """Failed to parse valid configuration JSON files."""
     pass
 
 class EmptyResponse(VibeGuardError):
     """Model returned an empty response."""
+    pass
+
+class FileSystemError(VibeGuardError):
+    """Failed to write or read from disk."""
+    pass
+
+class EventError(VibeGuardError):
+    """Unexpected event occured."""
+    pass
+
+class MissingFeatureId(VibeGuardError):
+    """Feature ID does not exist in map."""
     pass
