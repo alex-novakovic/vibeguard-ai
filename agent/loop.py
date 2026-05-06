@@ -4,9 +4,8 @@ from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from agent.scoping import ScopingSession
 from data.state import ProjectState
-from data.logger import log_llm_call
-from data.storage import initialize_feature_log
-
+from data.logger import Logger
+from data.storage import Storage
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
@@ -21,6 +20,7 @@ class AgentState(TypedDict):
     response: str
     scoping: ScopingSession
     project_state: ProjectState | None
+    logger: Logger | None
 
 
 # ── 2. NODES ─────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
     )
     project_state.current_cycle_tokens = scoping.total_tokens
 
-    log_llm_call(
+    state.logger.log_llm_call(
         function_name="scoping_session",
         prompt="Full scoping conversation",
         response=json.dumps(vision_doc),
@@ -152,6 +152,7 @@ class AgentSession:
         self.phase: str = PHASE_SCOPING
         self.scoping: ScopingSession = ScopingSession()
         self.project_state: ProjectState | None = None
+        self.logger: Logger = Logger()
 
 
     def _detect_scoping_complete(self, response: str) -> bool:
@@ -161,8 +162,8 @@ class AgentSession:
     async def _finish_scoping(self):
         vision_doc = await self.scoping.scoping_session()
 
-
-        initialize_feature_log(vision_doc.model_dump()) #added
+        storage = Storage()
+        storage.initialize_feature_log(vision_doc.model_dump()) #added
 
 
         self.phase = PHASE_GUARDIAN
@@ -172,7 +173,7 @@ class AgentSession:
         )
         self.project_state.current_cycle_tokens = self.scoping.total_tokens
 
-        log_llm_call(
+        self.logger.log_llm_call(
             function_name="scoping_session",
             prompt="Full scoping conversation",
 
@@ -226,6 +227,7 @@ async def run_agent(user_message: str, status: str, project_state: ProjectState,
         "response": "",
         "scoping": session.scoping,
         "project_state": session.project_state if status == "existing" else None,
+        "logger": session.logger
     }
 
     # run the graph

@@ -10,8 +10,8 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def load_or_create_project(self, state) -> tuple: #def load_or_create_project(self) -> tuple:
-        """Check if vision.json exists. Returns 'existing' or 'new'."""
+    def load_or_create_project(self) -> tuple:
+        """Check if vision.json exists. Returns ('existing', state) or ('new', None)."""
         ...
 
     @abstractmethod
@@ -23,6 +23,22 @@ class StorageBackend(ABC):
         alignment_note: str = None,
     ) -> dict:
         """Record a start or complete event for a feature. Returns updated entry."""
+        ...
+
+
+class LoggerBackend(ABC):
+    """Interface for Member B's logging layer (data/logger.py)."""
+
+    @abstractmethod
+    def log_llm_call(
+        self,
+        function_name: str,
+        prompt: str,
+        response: str,
+        tokens: int,
+        session_id: str,
+    ) -> None:
+        """Append an LLM call record to the log file."""
         ...
 
 
