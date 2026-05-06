@@ -7,7 +7,7 @@ from datetime import datetime
 from data.schemas import FeatureLogItem
 
 
-def initialize_feature_log(vision_doc: dict) -> str:
+def initialize_feature_log(vision_doc: VisionDoc) -> str:
 
     vision_doc = validate_vision_doc(vision_doc)  # dict → VisionDoc
     
