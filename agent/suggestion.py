@@ -25,17 +25,18 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
     log = project_state.feature_log
 
     # identify completed features
-    completed_names = {f.name for f in log if f.status == "complete"}
+    completed_ids = {f.id for f in log if f.status == "complete"}
 
     # filter ready tasks
     ready_tasks = []
     for item in vision.backlog:
-        if item.name in completed_names:
+        if item.id in completed_ids:
+            print(f"Skipping {item.id} (already complete)" )
             continue
 
         # all dependencies must be complete for this task to be ready
         deps_met = all(
-            any(f.name == dep_id and f.status == "complete" for f in log)
+            any(f.id == dep_id and f.status == "complete" for f in log)
             for dep_id in item.dependencies
         )
 
@@ -74,9 +75,21 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
     # from feature log — critical for dependency checking
     "completed_features": [f.id for f in log if f.status == "complete"],
     "in_progress_features": [f.id for f in log if f.status == "in_progress"],
+
+    "available_to_start_now": [t["id"] for t in ready_tasks],
     
     # backlog with full detail
-    "backlog": [item.model_dump() for item in vision.backlog],
+    "backlog": [
+    {
+        **item.model_dump(),
+        "status": (
+            "complete" if item.id in completed_ids
+            else "in_progress" if item.id == project_state.active_feature_id
+            else "to_do"
+        )
+    }
+    for item in vision.backlog
+   ],
 }
 
     filled_prompt = SUGGESTION_PROMPT.replace(
@@ -102,6 +115,5 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
         return {
             "feature_id": first["id"],
             "feature_name": first["name"],
-            "reason": "Suggested based on backlog priority (AI reasoning unavailable).",
-            "watch_out": "one sentence warning about scope risk or low confidence, or null"
+            "reason": "Suggested based on backlog priority (AI reasoning unavailable)."
         }
