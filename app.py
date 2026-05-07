@@ -23,19 +23,19 @@ def on_startup():
     try:
         status, state = storage.load_or_create_project()
     except ParsingFailed as e:
-        msg = f"⚠️ Saved project files are corrupted and could not be loaded: {e}"
+        msg = f"⚠️ {e}"
         return [{"role": "assistant", "content": msg}], None, None, "new", None
     except FileSystemError as e:
-        msg = f"⚠️ Failed to read project files from disk: {e}"
+        msg = f"⚠️ {e}"
         return [{"role": "assistant", "content": msg}], None, None, "new", None
     except VibeGuardError as e:
-        msg = f"⚠️ Unexpected error on startup: {e}"
+        msg = f"⚠️ {e}"
         return [{"role": "assistant", "content": msg}], None, None, "new", None
 
     if status == "existing":
         return (
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
-            state.vision_doc.model_dump(),
+            state.vision_doc.model_dump(), 
             state.feature_log,
             status,
             state,
@@ -104,6 +104,7 @@ with gr.Blocks(title="VibeGuard AI") as demo:
                 label="Agent",
                 height=500,
                 buttons=["copy"],
+                autoscroll=True,
             )
             with gr.Row():
                 msg_input = gr.Textbox(
@@ -115,9 +116,9 @@ with gr.Blocks(title="VibeGuard AI") as demo:
                 send_btn = gr.Button("Send", variant="primary", scale=1)
 
         with gr.Column(scale=1, min_width=300):
-            with gr.Accordion("Vision Document", open=True):
+            with gr.Accordion("Vision Document", open=False):
                 vision_display = gr.JSON(label=None, value=None)
-            with gr.Accordion("Feature Log", open=True):
+            with gr.Accordion("Feature Log", open=False):
                 log_display = gr.JSON(label=None, value=None)
 
     _send_inputs  = [msg_input, history_state, session_state, status_state, proj_state_state, initialized_state]
