@@ -1,0 +1,107 @@
+import json
+import logging
+# from agent.exceptions import ModelTimeout, RateLimitReached
+from agent.prompts.suggestion_prompt import SUGGESTION_PROMPT
+import os
+import asyncio
+from dotenv import load_dotenv
+from openai import OpenAI
+from data.state import ProjectState
+from agent.agent_utils import calculate_remaining_minutes
+
+logger = logging.getLogger("AgentLogic")
+
+CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
+
+load_dotenv()
+
+client = OpenAI(
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+async def suggest_next_task(project_state: ProjectState) -> dict:
+    vision = project_state.vision_doc
+    log = project_state.feature_log
+
+    # identify completed features
+    completed_names = {f.name for f in log if f.status == "complete"}
+
+    # filter ready tasks
+    ready_tasks = []
+    for item in vision.backlog:
+        if item.name in completed_names:
+            continue
+
+        # all dependencies must be complete for this task to be ready
+        deps_met = all(
+            any(f.name == dep_id and f.status == "complete" for f in log)
+            for dep_id in item.dependencies
+        )
+
+        if deps_met:
+            ready_tasks.append({
+                "id": item.id,
+                "name": item.name,
+                "priority": item.priority,
+                "description": item.description,
+                "estimatedMinutes": item.estimatedMinutes,
+                "confidence": item.confidence,
+                "scopeFlag": item.scopeFlag,
+                "scopeFlagReason": item.scopeFlagReason,
+            })
+
+    if not ready_tasks:
+        return {
+            "feature_id": None,
+            "feature_name": "No tasks available",
+            "reason": "All features are complete or blocked by dependencies."
+        }
+
+    # build single context dict matching {context} in prompt
+    context = {
+    # from VisionDoc
+    "projectName": vision.projectName,
+    "visionStatement": vision.visionStatement,
+    "successCriteria": vision.successCriteria,
+    "experienceLevel": vision.experienceLevel,
+    "availableTimeHours": vision.availableTimeHours,
+    "constraints": vision.constraints,
+    
+    # calculated
+    "remaining_budget_minutes": calculate_remaining_minutes(vision, log),
+    
+    # from feature log — critical for dependency checking
+    "completed_features": [f.id for f in log if f.status == "complete"],
+    "in_progress_features": [f.id for f in log if f.status == "in_progress"],
+    
+    # backlog with full detail
+    "backlog": [item.model_dump() for item in vision.backlog],
+}
+
+    filled_prompt = SUGGESTION_PROMPT.replace(
+        "{context}", json.dumps(context, indent=2)
+    )
+
+    try:
+        response = await asyncio.to_thread(
+            client.chat.completions.create,
+            model=CONVERSATION_MODEL,
+            messages=[{"role": "user", "content": filled_prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.3
+        )
+
+        raw = response.choices[0].message.content
+        print("AI Suggestion Response:", raw)
+        return json.loads(raw)
+
+    except Exception as e:
+        logger.error(f"Failed to get suggestion: {e}")
+        first = ready_tasks[0]
+        return {
+            "feature_id": first["id"],
+            "feature_name": first["name"],
+            "reason": "Suggested based on backlog priority (AI reasoning unavailable).",
+            "watch_out": "one sentence warning about scope risk or low confidence, or null"
+        }

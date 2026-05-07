@@ -31,6 +31,7 @@ class VisionDoc(BaseModel):
 
 class FeatureLogItem(BaseModel):
     model_config = {"frozen": False} #allow mutation for in-place updates
+    id:str
     name: str
     status: Literal["to_do", "in_progress", "complete"]
     cycles: List[dict]
