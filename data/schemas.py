@@ -35,3 +35,15 @@ class FeatureLogItem(BaseModel):
     status: Literal["to_do", "in_progress", "complete"]
     cycles: List[dict]
     drift_events: List[dict]
+
+class SessionEntry(BaseModel):
+    workSessionId: str
+    startTime: str
+    endTime: Optional[str] = None
+    featureCyclesCompleted: List[str] = []
+    driftEventsCount: int = 0
+    totalTokensUsed: int = 0
+    totalDurationMinutes: int = 0
+
+class SessionLog(BaseModel):
+    sessions: List[SessionEntry] = []
