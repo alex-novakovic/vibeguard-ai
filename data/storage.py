@@ -49,6 +49,7 @@ class Storage(StorageBackend):
 
         return feature_log_path 
 
+    # Since we have a dict of dicts in feature_log.json, we need to convert it back to a list of FeatureLogItems
     def load_or_create_project(self) -> tuple:   
             
         vision_path = "data/logs/vision.json"
@@ -60,7 +61,17 @@ class Storage(StorageBackend):
                     vision_doc = VisionDoc(**json.load(f))
 
                 with open(feature_log_path, "r") as f:
-                    feature_log = json.load(f)
+                    raw_data = json.load(f)
+    
+                    # Extract from the "features" key
+                    features_map = raw_data.get("features", {}) 
+                    
+                    feature_log = []
+                    for f_id, f_data in features_map.items():
+                        # The key (F001) is the ID. We put it into the dict 
+                        # so FeatureLogItem(**f_data) can find it.
+                        f_data["id"] = f_id 
+                        feature_log.append(FeatureLogItem(**f_data))
 
                 state = ProjectState(vision_doc, feature_log)
                 return "existing", state

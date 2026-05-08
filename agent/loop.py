@@ -1,17 +1,24 @@
-import asyncio
 import json
+import os
 import uuid
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
+from openai import OpenAI
 from agent.scoping import ScopingSession
 from data.state import ProjectState
 from data.logger import Logger
-from data.storage import Storage
 from agent.suggestion import suggest_next_task
-from agent.agent_utils import detect_feature_complete
+from agent.agent_utils import classify_guardian_intent, generate_guardian_response
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
+
+client = OpenAI(
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
 
 
 # ── 1. STATE ─────────────────────────────────────────────────────────────────
@@ -40,8 +47,8 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
     scoping = state["scoping"]
     vision_doc = await scoping.scoping_session()
 
-    storage = Storage()
-    storage.initialize_feature_log(vision_doc)
+    #storage = Storage()
+    #storage.initialize_feature_log(vision_doc)
 
     project_state = ProjectState(
         vision_doc=vision_doc,
@@ -58,7 +65,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
     )
 
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
-    clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to first task?"
+    clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to the first task?"
 
     return {
         **state,
@@ -70,28 +77,55 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
 
 async def guardian_node(state: AgentState) -> AgentState:
-    """Handles messages during guardian phase."""
     project_state = state["project_state"]
-    user_message = state["user_message"]
-
-    # Trigger 1 — just entered guardian phase, suggest first task
+    user_msg = state["user_message"]
+    
+    # --- STEP 1: INITIAL STATE TRIGGER (Transition from Scoping) ---
     if state.get("just_completed_scoping"):
-        result = await suggest_next_task(project_state)
-        response = f"🎯 **Next task:** {result['feature_name']}\n\n{result['reason']}"
-        if result.get("watch_out"):
-            response += f"\n\n⚠️ **Watch out:** {result['watch_out']}"
-        return {**state, "response": response, "just_completed_scoping": False}
+        res = await suggest_next_task(project_state)
+        skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
+        state["just_completed_scoping"] = False 
+    
+    else:
+        # --- STEP 2: INTENT ROUTING ---
+        intent = await classify_guardian_intent(user_msg)
+        
+        if intent == "SUGGEST":
+            # SKILL: SUGGESTION ENGINE
+            # Logic: Analyzes feature log + vision to find the next priority.
+            res = await suggest_next_task(project_state)
+            skill_output = f"SUGGESTION: {res['feature_name']} - {res['reason']}"
 
-    # Trigger 2 — user just marked a feature complete
-    if detect_feature_complete(user_message):
-        result = await suggest_next_task(project_state)
-        response = f"✅ Great work! Here's what to tackle next.\n\n🎯 **Next task:** {result['feature_name']}\n\n{result['reason']}"
-        if result.get("watch_out"):
-            response += f"\n\n⚠️ **Watch out:** {result['watch_out']}"
-        return {**state, "response": response}
+        elif intent == "START":
+            # SKILL: START_FEATURE
+            # Logic: Updates project_state.active_feature_id. 
+            # This 'locks' the developer into a specific goal.
+            # result = await start_feature_logic(project_state, user_msg)
+            skill_output = "ACTION: Feature marked as started. Monitoring mode ON."
 
-    # Otherwise — normal guardian conversation
-    return {**state, "response": "What are you working on? Let me know when you complete a feature."}
+        elif intent == "COMPLETE":
+            # SKILL: VISION_ALIGNMENT_CHECK
+            # Logic: The 'Judge'. Compares user's work vs. Success Criteria.
+            # If PASS: Mark feature as complete in feature_log.
+            # If FAIL: Explain what is missing.
+            # result = await vision_alignment_check(project_state, user_msg)
+            skill_output = "ACTION: Verifying completion against vision..."
+
+        else:
+            # SKILL: MONITOR_FOR_DRIFT (Passive Skill)
+            # Logic: This runs during 'CHAT'. It checks if the user is 
+            # talking about features NOT in the vision doc (Scope Creep).
+            # drift_report = await monitor_for_drift(project_state, user_msg)
+            skill_output = "CHAT: No specific skill triggered. (Drift detection active)"
+
+    # --- STEP 3: CONVERSATION WRAPPER ---
+    final_response = await generate_guardian_response(
+        project_state=project_state,
+        user_msg=user_msg,
+        skill_output=skill_output
+    )
+
+    return {**state, "response": final_response}
 
 
 # ── 3. EDGES ─────────────────────────────────────────────────────────────────
@@ -192,4 +226,8 @@ async def run_agent(user_message: str, status: str, project_state: ProjectState,
     session.project_state = result["project_state"]
     session.just_completed_scoping = result["just_completed_scoping"]
 
-    return result["response"]
+    return {
+        "response": result["response"],
+        "project_state": result["project_state"],
+        "phase": result["phase"]
+    }

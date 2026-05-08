@@ -58,7 +58,11 @@ async def on_send(message, history, session, status, proj_state, initialized):
         return err_history, err_history, "", gr.update(), gr.update(), initialized, status, proj_state
 
     try:
-        response = await run_agent(message, status, proj_state, session)
+        result = await run_agent(message, status, proj_state, session)
+        # 2. Extract the pieces
+        response_text = result["response"]
+        new_proj_state = result["project_state"]
+        new_phase = result["phase"]
     except RateLimitReached:
         return _agent_error("⚠️ Rate limit reached. Please wait a moment and try again.")
     except ModelTimeout:
@@ -72,7 +76,7 @@ async def on_send(message, history, session, status, proj_state, initialized):
 
     history = history + [
         {"role": "user", "content": message},
-        {"role": "assistant", "content": response},
+        {"role": "assistant", "content": response_text},
     ]
 
     if session.phase == PHASE_GUARDIAN and session.project_state and not initialized:
@@ -80,7 +84,16 @@ async def on_send(message, history, session, status, proj_state, initialized):
         try:
             log_path = storage.initialize_feature_log(vision_doc)
             log_data = json.loads(Path(log_path).read_text())
-            return history, history, "", vision_doc.model_dump(), log_data, True, "existing", session.project_state
+            return (
+            history, 
+            history, 
+            "", 
+            new_proj_state.vision_doc.model_dump(), # Updates Vision Doc UI
+            [f.model_dump() for f in new_proj_state.feature_log], # Updates Feature Log UI
+            True, 
+            "existing", 
+            new_proj_state
+        )
         except (FileSystemError, ValueError) as e:
             err_history = history + [{"role": "assistant", "content": f"⚠️ Failed to save project files: {e}"}]
             return err_history, err_history, "", gr.update(), gr.update(), initialized, status, proj_state
