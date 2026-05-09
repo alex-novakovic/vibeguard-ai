@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pydantic import ValidationError
-from data.schemas import VisionDoc, FeatureLogItem
+from data.schemas import VisionDoc, FeatureLogItem, SessionLog, SessionEntry
 from data.state import ProjectState
 from interfaces import StorageBackend
 import uuid
