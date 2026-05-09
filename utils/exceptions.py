@@ -31,3 +31,7 @@ class EventError(VibeGuardError):
 class MissingFeatureId(VibeGuardError):
     """Feature ID does not exist in map."""
     pass
+
+class MissingSessionId(VibeGuardError):
+    """Session ID does not exist in map."""
+    pass

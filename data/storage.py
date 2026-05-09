@@ -2,15 +2,17 @@ import json
 import os
 from datetime import datetime, timezone
 from pydantic import ValidationError
-from data.schemas import VisionDoc, FeatureLogItem
+from data.schemas import VisionDoc, FeatureLogItem, SessionLog, SessionEntry
 from data.state import ProjectState
 from interfaces import StorageBackend
+import uuid
 
 from utils.exceptions import (
     FileSystemError,
     ParsingFailed,
     EventError,
-    MissingFeatureId
+    MissingFeatureId,
+    MissingSessionId
 )
 
 class Storage(StorageBackend):
@@ -122,3 +124,96 @@ class Storage(StorageBackend):
             raise FileSystemError(f"Failed to write feature log: {e}") from e
 
         return item.model_dump()
+    
+    def start_session(self) -> dict:
+        
+        session_log_path = "./data/logs/session_log.json"
+        os.makedirs("./data/logs", exist_ok=True)
+        
+        # Load existing session_log or create a new one
+        if os.path.exists(session_log_path):
+            with open(session_log_path, "r") as f:
+                data = json.load(f)
+            session_log = SessionLog(**data)
+        else:
+            session_log = SessionLog()
+        
+        # Create new session entry
+        new_session = SessionEntry(
+            workSessionId=str(uuid.uuid4()),
+            startTime=datetime.now().isoformat()
+        )
+        
+        session_log.sessions.append(new_session)
+        
+        try:
+          with open(session_log_path, "w") as f:
+            json.dump(session_log.model_dump(), f, indent=2)
+        except OSError as e:
+           raise FileSystemError(f"Failed to write session log: {e}") from e
+
+        return new_session.model_dump()
+
+
+    def end_session(self, session_id: str, total_tokens: int) -> dict:
+        
+        session_log_path = "./data/logs/session_log.json"
+        feature_log_path = "./data/logs/feature_log.json"
+        
+        # Load session_log
+        try:
+            with open(session_log_path, "r") as f:
+              session_log = SessionLog(**json.load(f))
+        except FileNotFoundError:
+            raise FileSystemError("Session log not found. Call start_session first.")
+        except json.JSONDecodeError as e:
+            raise ParsingFailed(f"Session log file is corrupted: {e}") from e
+
+        # Load feature_log
+        try:
+            with open(feature_log_path, "r") as f:
+                feature_log = json.load(f)
+        except FileNotFoundError:
+            raise FileSystemError("Feature log not found. Call initialize_feature_log first.")
+        except json.JSONDecodeError as e:
+            raise ParsingFailed(f"Feature log file is corrupted: {e}") from e
+        
+         
+        # Find session by session_id
+        session = next(
+            (s for s in session_log.sessions if s.workSessionId == session_id),
+            None
+        )
+        
+        if session is None:
+         raise MissingSessionId(f"Session {session_id} not found")
+        
+        # Aggregate feature_log
+        features = feature_log["features"]
+        
+        completed = [
+            fid for fid, fdata in features.items()
+            if fdata["status"] == "complete"
+        ] #going through all features and checking which ones are marked as complete
+        
+        drift_count = sum(
+            len(fdata["drift_events"])
+            for fdata in features.values()
+        )#going through all features and summing up the number of drift events across all features
+        
+        # Calculate session duration
+        start = datetime.fromisoformat(session.startTime)
+        end = datetime.now()
+        duration = int((end - start).total_seconds() / 60)
+        
+        # Update session
+        session.endTime = end.isoformat()
+        session.featureCyclesCompleted = completed
+        session.driftEventsCount = drift_count
+        session.totalTokensUsed = total_tokens
+        session.totalDurationMinutes = duration
+        
+        with open(session_log_path, "w") as f:
+            json.dump(session_log.model_dump(), f, indent=2)
+        
+        return session.model_dump()
