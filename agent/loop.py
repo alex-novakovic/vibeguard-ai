@@ -1,9 +1,7 @@
 import json
-import os
 import uuid
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
-from openai import OpenAI
 from agent.scoping import ScopingSession
 from data.state import ProjectState
 from data.logger import Logger
@@ -13,12 +11,6 @@ from agent.agent_utils import classify_guardian_intent, generate_guardian_respon
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
 
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
-
-CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
 
 
 # ── 1. STATE ─────────────────────────────────────────────────────────────────

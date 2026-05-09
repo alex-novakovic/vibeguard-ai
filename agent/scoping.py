@@ -1,11 +1,12 @@
-import os
 import json
 import random
 import logging
 import asyncio
 from datetime import datetime, timezone
-from dotenv import load_dotenv
-from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
+from openai import RateLimitError, APIConnectionError, APITimeoutError
+from agent.config import CONVERSATION_MODEL, PARSING_MODEL, client
+from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
+from data.schemas import VisionDoc
 
 # Importing your specific exception classes
 from utils.exceptions import (
@@ -14,27 +15,10 @@ from utils.exceptions import (
     ParsingFailed, 
     EmptyResponse
 )
-from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
-from data.schemas import VisionDoc
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
-logging.getLogger("httpx").setLevel(logging.WARNING)
 
-logger = logging.getLogger("ScopingSession")
+logger = logging.getLogger(__name__)
 
-load_dotenv()
-
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
-
-CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
-PARSING_MODEL = os.getenv("PARSING_MODEL", "anthropic/claude-3-haiku")
 
 class ScopingSession:
     """

@@ -2,23 +2,14 @@ import json
 import logging
 # from agent.exceptions import ModelTimeout, RateLimitReached
 from agent.prompts.suggestion_prompt import SUGGESTION_PROMPT
-import os
 import asyncio
-from dotenv import load_dotenv
-from openai import OpenAI
 from data.state import ProjectState
 from agent.agent_utils import calculate_remaining_minutes
+from agent.config import CONVERSATION_MODEL, client
 
-logger = logging.getLogger("AgentLogic")
 
-CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
+logger = logging.getLogger(__name__)
 
-load_dotenv()
-
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
 
 async def suggest_next_task(project_state: ProjectState) -> dict:
     vision = project_state.vision_doc

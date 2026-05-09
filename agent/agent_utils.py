@@ -1,35 +1,12 @@
-import os
 import asyncio
-from openai import OpenAI
 import logging
 from agent.prompts.guardian_prompt import GUARDIAN_PROMPT
+from agent.config import CONVERSATION_MODEL, client
 
-logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
 
-logger = logging.getLogger("GuardianPhase")
-
-
-COMPLETE_SIGNALS = [
-    "done", "finished", "completed", "complete",
-    "shipped", "deployed", "merged", "closed",
-    "i finished", "i'm done", "it's done", "its done",
-    "feature done", "feature complete", "feature finished",
-    "wrapped up", "wrapped it up", "checked it off",
-]
-
-CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
-
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
 
 async def classify_guardian_intent(user_message: str) -> str:
     # We define the allowed set here to use for both the prompt and the validation
