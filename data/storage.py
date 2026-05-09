@@ -6,7 +6,6 @@ from data.schemas import VisionDoc, FeatureLogItem, SessionLog, SessionEntry
 from data.state import ProjectState
 from interfaces import StorageBackend
 import uuid
-from data.schemas import SessionLog, SessionEntry
 
 from utils.exceptions import (
     FileSystemError,
