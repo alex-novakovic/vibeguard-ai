@@ -30,7 +30,7 @@ Return ONLY a JSON object. No markdown, no prose:
   "feature_id": "F00X",
   "feature_name": "Task Name",
   "reason": "A 2-3 sentence strategic explanation. Reference why this fits the project vision and tech stack, and how it unblocks future high-priority work."
-}}
+  }}
 
 ### NEGATIVE CONSTRAINTS:
 - DO NOT include a "watch_out" field.

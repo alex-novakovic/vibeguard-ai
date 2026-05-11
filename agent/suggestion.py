@@ -96,9 +96,17 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             temperature=0.3
         )
 
+        usage = response.usage
+        token_count = usage.total_tokens if usage else 0
+
         raw = response.choices[0].message.content
         print("AI Suggestion Response:", raw)
-        return json.loads(raw)
+        
+        # 2. Parse the JSON and inject the token count
+        result = json.loads(raw)
+        result["tokens"] = token_count
+        
+        return result
 
     except Exception as e:
         logger.error(f"Failed to get suggestion: {e}")
@@ -106,5 +114,6 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
         return {
             "feature_id": first["id"],
             "feature_name": first["name"],
-            "reason": "Suggested based on backlog priority (AI reasoning unavailable)."
+            "reason": "Suggested based on backlog priority (AI reasoning unavailable).",
+            "tokens": 0 # Default to 0 on failure
         }

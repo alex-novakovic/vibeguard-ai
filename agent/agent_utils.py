@@ -41,41 +41,64 @@ async def classify_guardian_intent(user_message: str) -> str:
             temperature=0
         )
         
+        usage = response.usage
+
         # Clean the output string
         prediction = response.choices[0].message.content.strip().upper()
         
         # VALIDATION GUARDRAIL:
         # If the LLM hallucinates a new category, default to CHAT
-        return prediction if prediction in CATEGORIES else "CHAT"
+        return {
+            "prediction" : prediction if prediction in CATEGORIES else "CHAT",
+            "tokens": usage.total_tokens if usage else 0
+}
 
     except Exception as e:
         logger.error(f"Intent classification failed: {e}")
-        return "CHAT"
+        return {
+            "prediction": "CHAT",
+            "tokens": 0
+        }
 
-async def generate_guardian_response(project_state, user_msg, skill_output):
-    # 1. Prepare the dynamic context
+async def generate_guardian_response(project_state, user_msg, skill_output, history: list):
+    # 1. Prepare the dynamic context (unchanged)
     formatted_prompt = GUARDIAN_PROMPT.format(
         vision_statement=project_state.vision_doc.visionStatement,
         success_criteria=", ".join(project_state.vision_doc.successCriteria),
-        active_task=project_state.active_feature_id or "No active task. Ready for a suggestion!"
+        active_task=project_state.active_feature_id or "No active task."
     )
 
-    # 2. Call the LLM
-    messages = [
-        {"role": "system", "content": formatted_prompt},
-        {"role": "user", "content": f"Internal Skill Data: {skill_output}\n\nUser Message: {user_msg}"}
-    ]
+    # 2. Build the message chain
+    # Start with System
+    messages = [{"role": "system", "content": formatted_prompt}]
+    
+    # Add the last 10 messages from history (Conversation Memory)
+    # We slice [-10:] to keep it efficient
+    messages.extend(history[-10:])
+    
+    # Add the current Turn Data (The "Now")
+    # We include skill_output here so the AI knows what the "Skills" found
+    messages.append({
+        "role": "user", 
+        "content": f"Internal Skill Data: {skill_output}\n\nUser Message: {user_msg}"
+    })
 
     try:
         response = await asyncio.to_thread(
             client.chat.completions.create,
             model=CONVERSATION_MODEL,
             messages=messages,
-            temperature=0.7 # A bit of "human" variance for the voice
+            temperature=0.7 
         )
-        return response.choices[0].message.content.strip()
+        
+        usage = response.usage
+        return {
+            "text": response.choices[0].message.content.strip(),
+            "tokens": usage.total_tokens if usage else 0
+        }
     except Exception as e:
-        return f"I'm here, but my voice module failed. (Error: {e})"
+        logger.error(f"Guardian Response Error: {e}")
+        return {"text": "I encountered an error processing that. Could you try again?", "tokens": 0}
 
 def calculate_remaining_minutes(vision_doc, feature_log) -> int:
     total_budget = vision_doc.availableTimeHours * 60
