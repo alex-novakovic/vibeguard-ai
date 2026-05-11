@@ -81,7 +81,7 @@ class Storage(StorageBackend):
             except OSError as e:
                 raise FileSystemError(f"Failed to read project files: {e}") from e
 
-        return "new", None
+        return "new", ProjectState()
 
     def log_feature_cycle(self, feature_id: str, event: str, token_count: int = 0, alignment_note: str = None) -> dict:
         
@@ -162,8 +162,8 @@ class Storage(StorageBackend):
             json.dump(session_log.model_dump(), f, indent=2)
         except OSError as e:
            raise FileSystemError(f"Failed to write session log: {e}") from e
-
-        return new_session.model_dump()
+        
+        return new_session
 
 
     def end_session(self, session_id: str, total_tokens: int) -> dict:

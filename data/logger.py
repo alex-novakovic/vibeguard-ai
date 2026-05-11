@@ -10,7 +10,7 @@ class Logger(LoggerBackend):
         prompt: str,
         response: str,
         tokens: int,
-        session_id: str=None,
+        user_id: str=None,
     ) -> None:
         
         # Validate inputs
@@ -22,8 +22,8 @@ class Logger(LoggerBackend):
             raise ValueError("response cannot be empty")
         if not isinstance(tokens, int) or tokens < 0:
             raise ValueError(f"tokens must be a positive integer, got {tokens}")
-        if not session_id:
-            raise ValueError("session_id cannot be empty")
+        if not user_id:
+            raise ValueError("user_id cannot be empty")
         
         os.makedirs("./data/logs", exist_ok=True)
 
@@ -32,5 +32,5 @@ class Logger(LoggerBackend):
             f.write(f"PROMPT: {prompt}\n")
             f.write(f"RESPONSE: {response}\n")
             f.write(f"TOKENS: {tokens}\n")
-            f.write(f"SESSION_ID: {session_id}\n")
+            f.write(f"USER_ID: {user_id}\n")
             f.write("---\n")

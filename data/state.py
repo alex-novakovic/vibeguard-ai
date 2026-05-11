@@ -13,10 +13,7 @@ class ProjectState:
             for f in feature_log
         ]
         self.active_feature_id = None
-        self.current_cycle_tokens = 0
-
-    def update_state(self, vision_doc: VisionDoc, feature_log: List[FeatureLogItem], feature_id: str, tokens: int):
-        self.vision_doc = vision_doc
-        self.feature_log = feature_log
-        self.active_feature_id = feature_id
-        self.current_cycle_tokens = tokens
+        self.previous_feature_id = None
+        # counts total tokens used so far
+        self.total_tokens = 0
+        

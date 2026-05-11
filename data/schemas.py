@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict
 
 class BacklogItem(BaseModel):
     id: str
@@ -45,6 +45,7 @@ class SessionEntry(BaseModel):
     driftEventsCount: int = 0
     totalTokensUsed: int = 0
     totalDurationMinutes: int = 0
+    messages: List[Dict[str, str]] = []
 
 class SessionLog(BaseModel):
     sessions: List[SessionEntry] = []
