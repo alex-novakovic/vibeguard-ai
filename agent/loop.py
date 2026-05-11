@@ -1,20 +1,18 @@
 import json
-import uuid
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from agent.scoping import ScopingSession
 from data.state import ProjectState
 from data.logger import Logger
-from data.storage import Storage
+from agent.agent_session import AgentSession, PHASE_GUARDIAN, PHASE_SCOPING
+from interfaces import AgentFunctions
 
-PHASE_SCOPING = "scoping"
-PHASE_GUARDIAN = "guardian"
 
 
 # ── 1. STATE ─────────────────────────────────────────────────────────────────
 # This is what flows through the graph — replaces agent_state dict
 class AgentState(TypedDict):
-    session_id: str
+    user_id: str
     phase: str
     user_message: str
     response: str
@@ -37,7 +35,7 @@ async def scoping_node(state: AgentState) -> AgentState:
         prompt=state["user_message"],
         response=response,
         tokens=scoping.total_tokens,
-        session_id=state["session_id"],
+        user_id=state["user_id"],
     )
     '''
 
@@ -60,7 +58,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
         prompt="Full scoping conversation",
         response=json.dumps(vision_doc.model_dump()),
         tokens=scoping.total_tokens,
-        session_id=state["session_id"],
+        user_id=state["user_id"],
     )
 
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
@@ -140,101 +138,32 @@ def build_agent_graph():
 agent_graph = build_agent_graph()
 
 
-# ── 5. AgentSession — now just holds session-level state ─────────────────────
+# ── 5. run_agent — same signature as before ───────────────────────────────────
+class Agent(AgentFunctions):
+    async def run_agent(self, user_message: str, status: str, session: AgentSession) -> tuple:
+        """
+        Main entry point — same signature as before.
+        Now runs the LangGraph instead of if/elif routing.
+        """
+        if not user_message or not user_message.strip():
+            return "Please type a message to get started."
 
-class AgentSession:
-    """
-    Holds per-user state that persists between graph runs.
-    The graph itself is stateless — AgentSession carries state across turns.
-    """
-    def __init__(self):
-        self.session_id: str = str(uuid.uuid4())
-        self.phase: str = PHASE_SCOPING
-        self.scoping: ScopingSession = ScopingSession()
-        self.project_state: ProjectState | None = None
-        self.logger: Logger = Logger()
+        # build input state for this turn
+        input_state: AgentState = {
+            "user_id": session.user_id,
+            "phase": session.phase,
+            "user_message": user_message,
+            "response": "",
+            "scoping": session.scoping,
+            "project_state": session.project_state,
+            "logger": session.logger
+        }
 
+        # run the graph
+        result = await agent_graph.ainvoke(input_state)
 
-    def _detect_scoping_complete(self, response: str) -> bool:
-        last_line = response.strip().split("\n")[-1].strip().upper()
-        return last_line == "SCOPING_COMPLETE"
+        # sync updated state back to session
+        session.phase = result["phase"]
+        session.project_state = result["project_state"]
 
-    async def _finish_scoping(self):
-        vision_doc = await self.scoping.scoping_session()
-
-        storage = Storage()
-        storage.initialize_feature_log(vision_doc.model_dump()) #added
-
-
-        self.phase = PHASE_GUARDIAN
-        self.project_state = ProjectState(
-            vision_doc=vision_doc,
-            feature_log={}, ##adjusted to pydantic
-        )
-        self.project_state.current_cycle_tokens = self.scoping.total_tokens
-
-        self.logger.log_llm_call(
-            function_name="scoping_session",
-            prompt="Full scoping conversation",
-
-            response=json.dumps(vision_doc.model_dump()),  #adjusted to pydantic
-
-            tokens=self.scoping.total_tokens,
-            session_id=self.session_id,
-        )
-
-    async def _handle_scoping_phase(self, user_message: str) -> str:
-        response = await self.scoping.run_conversation_turn(user_message)
-        
-        # If we want to log each turn with tokens
-        '''
-        log_llm_call(
-            function_name="run_conversation_turn",
-            prompt=user_message,
-            response=response,
-            tokens=self.scoping.last_turn_tokens,
-            session_id=self.session_id,
-        )
-        '''
-
-        if self._detect_scoping_complete(response):
-            await self._finish_scoping()
-            clean_response = response.replace("SCOPING_COMPLETE", "").strip()
-            return clean_response + "\n\n✅ Scoping complete! Your vision doc has been saved."
-
-        return response
-
-    async def _handle_guardian_phase(self, user_message: str) -> str:
-        # TODO: wire in suggest_next_task() and monitor_for_drift()
-        project_name = self.project_state.vision_doc.projectName #adjusted to pydantic
-        return f"[Guardian mode active] Working on: {project_name}. Guardian features coming soon."
-
-# ── 6. run_agent — same signature as before ───────────────────────────────────
-
-async def run_agent(user_message: str, status: str, project_state: ProjectState, session: AgentSession) -> str:
-    """
-    Main entry point — same signature as before.
-    Now runs the LangGraph instead of if/elif routing.
-    """
-    if not user_message or not user_message.strip():
-        return "Please type a message to get started."
-
-    # build input state for this turn
-    input_state: AgentState = {
-        "session_id": session.session_id,
-        "phase": session.phase,
-        "user_message": user_message,
-        "response": "",
-        "scoping": session.scoping,
-        "project_state": session.project_state if status == "existing" else None,
-        "logger": session.logger
-    }
-
-    # run the graph
-    result = await agent_graph.ainvoke(input_state)
-
-    # sync updated state back to session
-    session.phase = result["phase"]
-    session.project_state = result["project_state"]
-
-    return result["response"]
+        return result["response"], session

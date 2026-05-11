@@ -1,30 +1,49 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from agent.agent_session import AgentSession
+    from data.schemas import VisionDoc, SessionLog
 from abc import ABC, abstractmethod
-from data.schemas import VisionDoc
 
 class StorageBackend(ABC):
     """Interface for Member B's storage layer (data/storage.py, data/state.py)."""
 
     @abstractmethod
-    def initialize_feature_log(self, vision_doc: VisionDoc) -> str:
-        """Create feature_log.json from vision_doc. Returns the file path."""
+    def initialize_feature_log(self, vision_doc: VisionDoc) -> dict:
+        """Create feature_log.json from vision_doc. Returns feature_log."""
         ...
 
     @abstractmethod
-    def load_or_create_project(self) -> tuple:
-        """Check if vision.json exists. Returns ('existing', state) or ('new', None)."""
+    def load_or_create_project(self, user_id: str) -> tuple:
+        """Check if vision.json exists. Returns ('existing', state) or ('new', state)."""
         ...
 
     @abstractmethod
     def log_feature_cycle(
         self,
+        feature_log: dict,
         feature_id: str,
         event: str,
-        token_count: int = 0,
         alignment_note: str = None,
+        drift_event: str = None
     ) -> dict:
-        """Record a start or complete event for a feature. Returns updated entry."""
+        """Record a start or complete event for a feature. Returns updated feature_log."""
         ...
 
+    @abstractmethod
+    def start_session(self, session_log: SessionLog) -> SessionLog:
+        """Record start session. Return session_log"""
+        ...
+
+    @abstractmethod
+    def end_session(self, session_id: str, session_log: SessionLog, feature_log: dict, total_tokens: int) -> SessionLog:
+        """Record end session. Return session_log"""
+        ...
+
+    @abstractmethod
+    def dump_logs(self, vision_doc: VisionDoc, feature_log: dict, session_log: SessionLog) -> None:
+        """Writes all log files."""
+        ...
 
 class LoggerBackend(ABC):
     """Interface for Member B's logging layer (data/logger.py)."""
@@ -46,22 +65,6 @@ class AgentFunctions(ABC):
     """Interface for Member A's standalone agent functions called directly from the UI."""
 
     @abstractmethod
-    def suggest_next_task(self) -> dict:
-        """Returns {"feature_id": str, "feature_name": str, "reason": str}."""
-        ...
-
-    @abstractmethod
-    def monitor_for_drift(
-        self,
-        feature_id: str,
-        user_description: str,
-        time_spent_minutes: int,
-        current_file: str,
-    ) -> dict:
-        """Returns {"is_drift": bool, "nudge_message": str}."""
-        ...
-
-    @abstractmethod
-    def vision_alignment_check(self, feature_id: str, alignment_note: str) -> dict:
-        """Returns {"is_aligned": bool, "feedback": str}."""
+    async def run_agent(self, user_message: str, status: str, session: AgentSession) -> tuple:
+        """Perform agent run."""
         ...
