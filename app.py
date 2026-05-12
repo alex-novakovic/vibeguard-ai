@@ -1,9 +1,8 @@
 import gradio as gr
-import json
-from pathlib import Path
-
-from agent.loop import run_agent, AgentSession, PHASE_GUARDIAN
-from interfaces import StorageBackend
+import uuid
+from agent.agent_session import AgentSession, PHASE_GUARDIAN
+from agent.loop import Agent
+from interfaces import StorageBackend, AgentFunctions
 from data.storage import Storage
 from utils.exceptions import (
     VibeGuardError,
@@ -15,41 +14,74 @@ from utils.exceptions import (
 )
 
 storage: StorageBackend = Storage()
+agent: AgentFunctions = Agent()
+
+_session_states: dict = {}
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
 
-def on_startup():
+def on_startup(user_id):
+    if not user_id:
+        user_id = str(uuid.uuid4())  # first visit — generate once, stored in browser
     try:
-        status, state = storage.load_or_create_project()
+        session = AgentSession()
+        session.user_id = user_id
+        status, state = storage.load_or_create_project(user_id)
+        state.session_log = storage.start_session(state.session_log)
     except ParsingFailed as e:
-        msg = f"⚠️ Saved project files are corrupted and could not be loaded: {e}"
-        return [{"role": "assistant", "content": msg}], None, None, "new", None
+        msg = f"⚠️ {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
     except FileSystemError as e:
-        msg = f"⚠️ Failed to read project files from disk: {e}"
-        return [{"role": "assistant", "content": msg}], None, None, "new", None
+        msg = f"⚠️ {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
     except VibeGuardError as e:
-        msg = f"⚠️ Unexpected error on startup: {e}"
-        return [{"role": "assistant", "content": msg}], None, None, "new", None
+        msg = f"⚠️ {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
 
+    session.project_state = state
     if status == "existing":
+        session.phase = PHASE_GUARDIAN
         return (
+            user_id,
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
             state.vision_doc.model_dump(),
             state.feature_log,
             status,
             state,
+            session,
         )
     return (
+        user_id,
         [{"role": "assistant", "content": WELCOME}],
         None,
         None,
         status,
-        None,
+        state,
+        session,
     )
 
+def save_logs(proj_state, request: gr.Request):
+    if proj_state is None:
+        return gr.update()
+    _session_states[request.session_hash] = proj_state
+    try:
+        storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
+    except FileSystemError as e:
+        return gr.update(value=f"⚠️ Auto-save failed: {e}")
+    return gr.update()
 
-async def on_send(message, history, session, status, proj_state, initialized):
+def on_exit(request: gr.Request):
+    proj_state = _session_states.pop(request.session_hash, None)
+    if proj_state is None:
+        return
+    try:
+        storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
+    except FileSystemError:
+        pass
+
+
+async def on_send(message, history, session, status, proj_state, initialized, request: gr.Request):
     def _agent_error(msg):
         err_history = history + [
             {"role": "user", "content": message},
@@ -58,7 +90,7 @@ async def on_send(message, history, session, status, proj_state, initialized):
         return err_history, err_history, "", gr.update(), gr.update(), initialized, status, proj_state
 
     try:
-        response = await run_agent(message, status, proj_state, session)
+        response, session = await agent.run_agent(message, status, session)
     except RateLimitReached:
         return _agent_error("⚠️ Rate limit reached. Please wait a moment and try again.")
     except ModelTimeout:
@@ -77,22 +109,20 @@ async def on_send(message, history, session, status, proj_state, initialized):
 
     if session.phase == PHASE_GUARDIAN and session.project_state and not initialized:
         vision_doc = session.project_state.vision_doc
-        try:
-            log_path = storage.initialize_feature_log(vision_doc)
-            log_data = json.loads(Path(log_path).read_text())
-            return history, history, "", vision_doc.model_dump(), log_data, True, "existing", session.project_state
-        except (FileSystemError, ValueError) as e:
-            err_history = history + [{"role": "assistant", "content": f"⚠️ Failed to save project files: {e}"}]
-            return err_history, err_history, "", gr.update(), gr.update(), initialized, status, proj_state
+        log_data = storage.initialize_feature_log(vision_doc)
+        session.project_state.feature_log = log_data
+        _session_states[request.session_hash] = session.project_state
+        return history, history, "", vision_doc.model_dump(), log_data, True, "existing", session.project_state
 
     return history, history, "", gr.update(), gr.update(), initialized, status, proj_state
 
 
 with gr.Blocks(title="VibeGuard AI") as demo:
-    session_state     = gr.State(AgentSession())  # instance, not class
+    user_id_browser   = gr.BrowserState(None)
+    session_state     = gr.State(None)
     history_state     = gr.State([])
     status_state      = gr.State("new")           # "new" | "existing" from load_or_create_project
-    proj_state_state  = gr.State(None)            # ProjectState object from Member B
+    proj_state_state  = gr.State(None)                                             # ProjectState object from Member B
     initialized_state = gr.State(False)           # True after initialize_feature_log is called
 
     gr.Markdown("# VibeGuard AI\n*Stop tinkering. Start shipping.*")
@@ -127,9 +157,11 @@ with gr.Blocks(title="VibeGuard AI") as demo:
     msg_input.submit(on_send, inputs=_send_inputs, outputs=_send_outputs)
     demo.load(
         on_startup,
-        inputs=[],
-        outputs=[chatbot, vision_display, log_display, status_state, proj_state_state],
+        inputs=[user_id_browser],
+        outputs=[user_id_browser, chatbot, vision_display, log_display, status_state, proj_state_state, session_state],
     )
+    gr.Timer(300).tick(save_logs, inputs=[proj_state_state], outputs=[chatbot])
+    demo.unload(on_exit)
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), share=False)

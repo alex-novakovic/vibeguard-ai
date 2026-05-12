@@ -33,7 +33,7 @@ class FeatureLogItem(BaseModel):
     model_config = {"frozen": False} #allow mutation for in-place updates
     name: str
     status: Literal["to_do", "in_progress", "complete"]
-    cycles: List[dict]
+    cycles: List[dict]  # start_time, end_time, allignment_note, tokens_used
     drift_events: List[dict]
 
 class SessionEntry(BaseModel):
@@ -42,7 +42,8 @@ class SessionEntry(BaseModel):
     endTime: Optional[str] = None
     featureCyclesCompleted: List[str] = []
     driftEventsCount: int = 0
-    totalTokensUsed: int = 0
+    tokensUsed: int = 0 # in session
+    totalTokensUsed: int = 0    # in project
     totalDurationMinutes: int = 0
 
 class SessionLog(BaseModel):
