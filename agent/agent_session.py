@@ -19,6 +19,8 @@ class AgentSession:
         self.phase: str = PHASE_SCOPING
         self.scoping: ScopingSession = ScopingSession()
         self.project_state: ProjectState = ProjectState()
+        self.alignment_note: str | None = None
+        self.drift_note: str | None = None
         self.logger: Logger = Logger()
 
 
