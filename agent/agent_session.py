@@ -18,7 +18,7 @@ class AgentSession:
         self.user_id: str = str()
         self.phase: str = PHASE_SCOPING
         self.scoping: ScopingSession = ScopingSession()
-        self.project_state: ProjectState | None = None
+        self.project_state: ProjectState = ProjectState()
         self.logger: Logger = Logger()
 
 

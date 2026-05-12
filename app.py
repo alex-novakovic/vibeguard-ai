@@ -25,21 +25,21 @@ def on_startup(user_id):
     if not user_id:
         user_id = str(uuid.uuid4())  # first visit — generate once, stored in browser
     try:
-        status, state = storage.load_or_create_project(user_id)
-        state.session_log = storage.start_session(state.session_log)
         session = AgentSession()
         session.user_id = user_id
-        session.project_state = state
+        status, state = storage.load_or_create_project(user_id)
+        state.session_log = storage.start_session(state.session_log)
     except ParsingFailed as e:
-        msg = f"⚠️ Saved project files are corrupted and could not be loaded: {e}"
-        return [{"role": "assistant", "content": msg}], None, None, "new", None
+        msg = f"⚠️ {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
     except FileSystemError as e:
-        msg = f"⚠️ Failed to read project files from disk: {e}"
-        return [{"role": "assistant", "content": msg}], None, None, "new", None
+        msg = f"⚠️ {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
     except VibeGuardError as e:
-        msg = f"⚠️ Unexpected error on startup: {e}"
-        return [{"role": "assistant", "content": msg}], None, None, "new", None
+        msg = f"⚠️ {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
 
+    session.project_state = state
     if status == "existing":
         session.phase = PHASE_GUARDIAN
         return (
