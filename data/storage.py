@@ -35,9 +35,11 @@ class Storage(StorageBackend):
 
     def load_or_create_project(self, user_id: str) -> tuple:   
             
-        vision_path = "data/logs/vision_doc.json"
-        feature_log_path = "data/logs/feature_log.json"
-        session_log_path = "data/logs/session_log.json"
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        vision_path      = os.path.join(BASE_DIR, "logs", "vision_doc.json")
+        feature_log_path = os.path.join(BASE_DIR, "logs", "feature_log.json")
+        session_log_path = os.path.join(BASE_DIR, "logs", "session_log.json")
         
         if os.path.exists(vision_path) and os.path.exists(feature_log_path) and os.path.exists(session_log_path):
             try:
