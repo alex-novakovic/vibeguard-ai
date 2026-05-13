@@ -1,4 +1,4 @@
-from datetime import datetime
+from utils.common import now
 import os
 from interfaces import LoggerBackend
 
@@ -28,7 +28,7 @@ class Logger(LoggerBackend):
         os.makedirs("./data/logs", exist_ok=True)
 
         with open("./data/logs/llm_calls.log", "a") as f:
-            f.write(f"[{datetime.now()}] FUNCTION: {function_name}\n")
+            f.write(f"[{now()}] FUNCTION: {function_name}\n")
             f.write(f"PROMPT: {prompt}\n")
             f.write(f"RESPONSE: {response}\n")
             f.write(f"TOKENS: {tokens}\n")

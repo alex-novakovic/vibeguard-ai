@@ -3,7 +3,7 @@ import json
 import random
 import logging
 import asyncio
-from datetime import datetime, timezone
+from utils.common import now
 from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
 
@@ -139,7 +139,7 @@ class ScopingSession:
                     raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
                 vision_doc = json.loads(raw)
-                vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
+                vision_doc["createdAt"] = now()
 
                 return VisionDoc(**vision_doc)
 
