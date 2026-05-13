@@ -83,13 +83,13 @@ async def guardian_node(state: AgentState) -> AgentState:
 # ── 3. EDGES ─────────────────────────────────────────────────────────────────
 # Conditions that decide which node runs next
 
-def _detect_scoping_complete(response: str) -> bool:
+def detect_scoping_complete(response: str) -> bool:
     last_line = response.strip().split("\n")[-1].strip().upper()
     return last_line == "SCOPING_COMPLETE"
 
 def route_after_scoping(state: AgentState) -> Literal["finish_scoping", "end"]:
     """After scoping node runs — did the model signal completion?"""
-    if _detect_scoping_complete(state["response"]):
+    if detect_scoping_complete(state["response"]):
         return "finish_scoping"
     return "end"
 
