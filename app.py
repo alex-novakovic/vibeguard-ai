@@ -1,9 +1,11 @@
 import gradio as gr
 import uuid
+import asyncio
 from agent.agent_session import AgentSession, PHASE_GUARDIAN
 from agent.loop import Agent
 from interfaces import StorageBackend, AgentFunctions
 from data.storage import Storage
+from data.db import init_db
 from utils.exceptions import (
     VibeGuardError,
     RateLimitReached,
@@ -165,3 +167,18 @@ with gr.Blocks(title="VibeGuard AI") as demo:
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), share=False)
+###NEWWWW
+async def main():
+
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
+        return
+
+    # 2. Start the Gradio app
+    demo.launch(theme=gr.themes.Soft(), share=False)
+
+if __name__ == "__main__":
+    # Except demo.launch(), we don't need to run the event loop here since Gradio will handle it.
+    asyncio.run(main())
