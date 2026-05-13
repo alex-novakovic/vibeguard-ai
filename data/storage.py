@@ -1,6 +1,7 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime
+from utils.common import now, now_dt
 from pydantic import ValidationError
 from data.schemas import VisionDoc, FeatureLogItem, SessionLog, SessionEntry
 from data.state import ProjectState
@@ -72,7 +73,7 @@ class Storage(StorageBackend):
         except ValidationError as e:
             raise ParsingFailed(f"Feature log entry for '{feature_id}' is invalid: {e}") from e
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = now()
 
         if event == "start":
             item.status = "in_progress"
@@ -103,7 +104,7 @@ class Storage(StorageBackend):
         # Create new session entry
         new_session = SessionEntry(
             workSessionId=str(uuid.uuid4()),
-            startTime=datetime.now().isoformat()
+            startTime=now()
         )
         
         session_log.sessions.append(new_session)
@@ -136,7 +137,7 @@ class Storage(StorageBackend):
         
         # Calculate session duration
         start = datetime.fromisoformat(session.startTime)
-        end = datetime.now()
+        end = now_dt()
         duration = int((end - start).total_seconds() / 60)
         
         # Update session
