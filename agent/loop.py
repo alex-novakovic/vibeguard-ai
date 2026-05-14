@@ -146,7 +146,7 @@ class Agent(AgentFunctions):
         Now runs the LangGraph instead of if/elif routing.
         """
         if not user_message or not user_message.strip():
-            return "Please type a message to get started."
+            return "Please type a message to get started.", session
 
         # build input state for this turn
         input_state: AgentState = {
