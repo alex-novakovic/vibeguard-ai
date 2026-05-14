@@ -152,7 +152,8 @@ class Storage(StorageBackend):
         return session_log
     
     def dump_logs(self, vision_doc: VisionDoc, feature_log: dict, session_log: SessionLog) -> None:
-        log_dir_path = "data/logs"
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        log_dir_path = os.path.join(BASE_DIR, "logs")
 
         try:
             os.makedirs(log_dir_path, exist_ok=True)
