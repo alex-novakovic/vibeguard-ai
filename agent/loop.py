@@ -75,7 +75,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 async def guardian_node(state: AgentState) -> AgentState:
     """Handles messages during guardian phase."""
     # TODO: wire in suggest_next_task() and monitor_for_drift()
-    project_name = state["project_state"].vision_doc.get("projectName", "your project")
+    project_name = state["project_state"].vision_doc.projectName
     response = f"[Guardian mode active] Working on: {project_name}. Guardian features coming soon."
     return {**state, "response": response}
 
