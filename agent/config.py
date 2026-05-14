@@ -3,8 +3,16 @@ import logging
 from openai import OpenAI
 from dotenv import load_dotenv
 from data.logger import Logger
+from openai import AsyncOpenAI
 
 load_dotenv()
+
+client = AsyncOpenAI(
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+logger = Logger()
 
 # 1. Centralized System Logging Configuration
 # This ensures all modules follow the same format
@@ -18,10 +26,3 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 # 2. LLM Configuration
 CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
 PARSING_MODEL = os.getenv("PARSING_MODEL", "anthropic/claude-3-haiku")
-
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
-
-logger = Logger()

@@ -2,10 +2,10 @@ import asyncio
 import logging
 from agent.prompts.guardian_prompt import GUARDIAN_PROMPT
 from agent.config import CONVERSATION_MODEL, client
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
-
 
 
 async def classify_guardian_intent(user_message: str) -> str:
@@ -34,8 +34,7 @@ async def classify_guardian_intent(user_message: str) -> str:
     """
 
     try:
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
+        response = await client.chat.completions.create (
             model=CONVERSATION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0
@@ -84,8 +83,7 @@ async def generate_guardian_response(project_state, user_msg, skill_output, hist
     })
 
     try:
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
+        response = await client.chat.completions.create (
             model=CONVERSATION_MODEL,
             messages=messages,
             temperature=0.7 
@@ -100,10 +98,18 @@ async def generate_guardian_response(project_state, user_msg, skill_output, hist
         logger.error(f"Guardian Response Error: {e}")
         return {"text": "I encountered an error processing that. Could you try again?", "tokens": 0}
 
+
 def calculate_remaining_minutes(vision_doc, feature_log) -> int:
     total_budget = vision_doc.availableTimeHours * 60
-    spent = sum(
-        sum(cycle.get("durationMinutes", 0) for cycle in feature.cycles)
-        for feature in feature_log
-    )
-    return max(0, total_budget - spent)
+    features = feature_log["features"]
+    
+    spent = 0
+    for feature in features.values():
+        for cycle in feature["cycles"]:
+            started = cycle.get("started_at")
+            completed = cycle.get("completed_at")
+            if started and completed:  # only count finished cycles
+                delta = datetime.fromisoformat(completed) - datetime.fromisoformat(started)
+                spent += delta.total_seconds() / 60
+
+    return max(0, total_budget - int(spent))

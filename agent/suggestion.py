@@ -1,11 +1,11 @@
 import json
 import logging
-# from agent.exceptions import ModelTimeout, RateLimitReached
-from agent.prompts.suggestion_prompt import SUGGESTION_PROMPT
 import asyncio
+from agent.prompts.suggestion_prompt import SUGGESTION_PROMPT
 from data.state import ProjectState
 from agent.agent_utils import calculate_remaining_minutes
 from agent.config import CONVERSATION_MODEL, client
+from utils.exceptions import ModelTimeout, RateLimitReached
 
 
 logger = logging.getLogger(__name__)
@@ -91,8 +91,7 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
     )
 
     try:
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
+        response = await client.chat.completions.create (
             model=CONVERSATION_MODEL,
             messages=[{"role": "user", "content": filled_prompt}],
             response_format={"type": "json_object"},
@@ -103,13 +102,21 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
         token_count = usage.total_tokens if usage else 0
 
         raw = response.choices[0].message.content
-        print("AI Suggestion Response:", raw)
+        logger.debug(f"AI Suggestion Response: {raw}")
         
         # 2. Parse the JSON and inject the token count
         result = json.loads(raw)
         result["tokens"] = token_count
         
         return result
+
+    except asyncio.TimeoutError:
+        logger.error("Suggestion request timed out.")
+        raise ModelTimeout("suggest_next_task timed out waiting for OpenRouter.")
+
+    except RateLimitReached:
+        logger.error("Rate limit hit during suggestion.")
+        raise
 
     except Exception as e:
         logger.error(f"Failed to get suggestion: {e}")
@@ -118,5 +125,5 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             "feature_id": first["id"],
             "feature_name": first["name"],
             "reason": "Suggested based on backlog priority (AI reasoning unavailable).",
-            "tokens": 0 # Default to 0 on failure
+            "tokens": 0
         }

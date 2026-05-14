@@ -20,7 +20,7 @@ class AgentState(TypedDict):
     user_message: str
     messages: List[Dict[str, str]]
     response: str
-    scoping: ScopingSession
+    scoping: ScopingSession | None
     project_state: ProjectState | None
     logger: Logger | None
     just_completed_scoping: bool
@@ -35,7 +35,7 @@ async def scoping_node(state: AgentState) -> AgentState:
     response = await scoping.run_conversation_turn(state["user_message"])
 
     '''
-    log_llm_call(
+    state["logger"].log_llm_call(
         function_name="run_conversation_turn",
         prompt=state["user_message"],
         response=response,
@@ -60,12 +60,13 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
     state["logger"].log_llm_call(
         function_name="scoping_session",
-        prompt="Full scoping conversation",
+        prompt=state["scoping"].conversation_history,
         response=json.dumps(vision_doc.model_dump()),
         tokens=scoping.total_tokens,
         user_id=state["user_id"],
     )
-
+    
+    project_state.current_cycle_tokens = 0                     # reset for guardian cycle
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
     clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to the first task?"
 
@@ -74,6 +75,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
         "phase": PHASE_GUARDIAN,
         "project_state": project_state,
         "response": clean_response,
+        "scoping": None,
         "just_completed_scoping": True
     }
 
@@ -82,6 +84,9 @@ async def guardian_node(state: AgentState) -> AgentState:
     """Handles messages during guardian phase."""
     project_state = state["project_state"]
     user_msg = state["user_message"]
+
+    skill_tokens = 0
+    skill_output = ""
 
     # 1. ADD USER MESSAGE TO HISTORY IMMEDIATELY
     if "messages" not in state or state["messages"] is None:
@@ -92,18 +97,18 @@ async def guardian_node(state: AgentState) -> AgentState:
         res = await suggest_next_task(project_state)
         skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
         # Add tokens from suggestion to the session's total
-        # skill_tokens += res.get("tokens", 0)
+        skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
     else:
         res = await classify_guardian_intent(user_msg)
         intent = res["prediction"]
         # Add tokens from intent classification to the session's total
-        # skill_tokens += res["tokens"]
+        skill_tokens += res["tokens"]
         if intent == "SUGGEST":
             res = await suggest_next_task(project_state)
             skill_output = f"SUGGESTION: {res['feature_name']} - {res['reason']}"
             # Add tokens from suggestion to the session's total
-            # skill_tokens += res.get("tokens", 0)
+            skill_tokens += res.get("tokens", 0)
     
     # 4. Generate Final Response with Context
     # We pass only the last 10 messages for token efficiency
@@ -115,14 +120,14 @@ async def guardian_node(state: AgentState) -> AgentState:
     )
 
     final_response = llm_res["text"]
-    # skill_tokens += llm_res.get("tokens", 0)
+    skill_tokens += llm_res.get("tokens", 0)
     # add the tokens to the projectstate for overall accounting
-    # if project_state:
-        # project_state.total_tokens += skill_tokens
+    if project_state:
+        project_state.current_cycle_tokens += skill_tokens
     
     state["messages"].append({"role": "assistant", "content": final_response})
 
-    return {**state, "response": final_response, "messages": state["messages"]}
+    return {**state, "response": final_response, "messages": state["messages"],"project_state": project_state}
 
 
 # ── 3. EDGES ─────────────────────────────────────────────────────────────────
@@ -214,6 +219,7 @@ class Agent(AgentFunctions):
         session.phase = result["phase"]
         session.project_state = result["project_state"]
         session.just_completed_scoping = result["just_completed_scoping"]
+        session.scoping = result["scoping"]
         session.messages = result["messages"]
 
         return result["response"], session
