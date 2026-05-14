@@ -1,9 +1,7 @@
 from agent.scoping import ScopingSession
 from data.state import ProjectState
+from typing import List, Dict
 from data.logger import Logger
-from data.storage import Storage
-import json
-import uuid
 
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
@@ -17,8 +15,10 @@ class AgentSession:
     def __init__(self):
         self.user_id: str = str()
         self.phase: str = PHASE_SCOPING
-        self.scoping: ScopingSession = ScopingSession()
+        self.scoping: ScopingSession | None = ScopingSession()
         self.project_state: ProjectState = ProjectState()
+        self.just_completed_scoping: bool = False
+        self.messages: List[Dict] = []  # This will hold the conversation history
         self.alignment_note: str | None = None
         self.drift_note: str | None = None
         self.logger: Logger = Logger()

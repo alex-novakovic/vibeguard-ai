@@ -74,8 +74,7 @@ class ScopingSession:
 
         for attempt in range(retries):
             try:
-                response = await asyncio.to_thread(
-                    client.chat.completions.create,
+                response = await client.chat.completions.create (
                     model=CONVERSATION_MODEL,
                     messages=self.chat_messages,
                     temperature=0.7,
@@ -111,8 +110,7 @@ class ScopingSession:
 
         for attempt in range(3):
             try:
-                response = await asyncio.to_thread(
-                    client.chat.completions.create,
+                response = await client.chat.completions.create (
                     model=PARSING_MODEL,
                     messages=[
                         {
