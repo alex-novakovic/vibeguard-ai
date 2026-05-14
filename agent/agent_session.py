@@ -16,8 +16,14 @@ class AgentSession:
         self.phase: str = PHASE_SCOPING
         self.scoping: ScopingSession = ScopingSession()
         self.project_state: ProjectState = ProjectState()
+<<<<<<< HEAD
         self.just_completed_scoping: bool = False
         self.messages: List[Dict] = []  # This will hold the conversation history
+=======
+        self.alignment_note: str | None = None
+        self.drift_note: str | None = None
+        self.logger: Logger = Logger()
+>>>>>>> origin/main
 
 
 

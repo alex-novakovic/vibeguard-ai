@@ -1,6 +1,7 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime
+from utils.common import now, now_dt
 from pydantic import ValidationError
 from data.schemas import VisionDoc, FeatureLogItem, SessionLog, SessionEntry
 from data.state import ProjectState
@@ -34,9 +35,11 @@ class Storage(StorageBackend):
 
     def load_or_create_project(self, user_id: str) -> tuple:   
             
-        vision_path = "data/logs/vision_doc.json"
-        feature_log_path = "data/logs/feature_log.json"
-        session_log_path = "data/logs/session_log.json"
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        vision_path      = os.path.join(BASE_DIR, "logs", "vision_doc.json")
+        feature_log_path = os.path.join(BASE_DIR, "logs", "feature_log.json")
+        session_log_path = os.path.join(BASE_DIR, "logs", "session_log.json")
         
         if os.path.exists(vision_path) and os.path.exists(feature_log_path) and os.path.exists(session_log_path):
             try:
@@ -61,8 +64,8 @@ class Storage(StorageBackend):
 
     def log_feature_cycle(self, feature_log: dict, feature_id: str, event: str, alignment_note: str = None, drift_event: str = None) -> dict:
         
-        if event not in ("start", "complete"):
-            raise EventError(f"Invalid event: {event}. Must be 'start' or 'complete'")
+        if event not in ("start", "complete", "in_progress"):
+            raise EventError(f"Invalid event: {event}. Must be 'start', 'complete' or 'in_progress'")
 
         if feature_id not in feature_log.get("features", {}):
             raise MissingFeatureId(f"Feature '{feature_id}' not found in feature log.")
@@ -72,7 +75,7 @@ class Storage(StorageBackend):
         except ValidationError as e:
             raise ParsingFailed(f"Feature log entry for '{feature_id}' is invalid: {e}") from e
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = now()
 
         if event == "start":
             item.status = "in_progress"
@@ -86,6 +89,17 @@ class Storage(StorageBackend):
                 "drift_note": drift_event
             })
 
+        elif event == "in_progress":
+            if not item.cycles:
+                raise EventError(f"Cannot update '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
+            if alignment_note is not None:
+                item.cycles[-1]["alignment_note"] = alignment_note
+            if drift_event is not None:
+                item.drift_events.append({
+                    "drift_time": now,
+                    "drift_note": drift_event
+                })
+
         elif event == "complete":
             if not item.cycles:
                 raise EventError(f"Cannot complete '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
@@ -98,17 +112,17 @@ class Storage(StorageBackend):
 
         return feature_log
     
-    def start_session(self, session_log: SessionLog) -> SessionLog:
+    def start_session(self, session_log: SessionLog) -> tuple:
         
         # Create new session entry
         new_session = SessionEntry(
             workSessionId=str(uuid.uuid4()),
-            startTime=datetime.now().isoformat()
+            startTime=now()
         )
         
         session_log.sessions.append(new_session)
         
-        return session_log
+        return new_session.workSessionId, session_log
 
     def end_session(self, session_id: str, session_log: SessionLog, feature_log: dict, total_tokens: int) -> SessionLog:
         
@@ -136,7 +150,7 @@ class Storage(StorageBackend):
         
         # Calculate session duration
         start = datetime.fromisoformat(session.startTime)
-        end = datetime.now()
+        end = now_dt()
         duration = int((end - start).total_seconds() / 60)
         
         # Update session
@@ -149,7 +163,8 @@ class Storage(StorageBackend):
         return session_log
     
     def dump_logs(self, vision_doc: VisionDoc, feature_log: dict, session_log: SessionLog) -> None:
-        log_dir_path = "data/logs"
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        log_dir_path = os.path.join(BASE_DIR, "logs")
 
         try:
             os.makedirs(log_dir_path, exist_ok=True)

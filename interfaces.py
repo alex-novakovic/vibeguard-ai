@@ -31,8 +31,8 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def start_session(self, session_log: SessionLog) -> SessionLog:
-        """Record start session. Return session_log"""
+    def start_session(self, session_log: SessionLog) -> tuple:
+        """Record start session. Return session ID and session_log"""
         ...
 
     @abstractmethod
