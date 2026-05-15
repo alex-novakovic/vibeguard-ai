@@ -8,49 +8,86 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-async def classify_guardian_intent(user_message: str) -> str:
-    # We define the allowed set here to use for both the prompt and the validation
-     
-    CATEGORIES = ["SUGGEST", "START", "COMPLETE", "CHAT"] 
-    prompt = f"""
-    You are the Intent Router for VibeGuard, a project management AI. 
-    Analyze the user's message and categorize it into ONE of these buckets:
+async def classify_guardian_intent(user_message: str, active_feature_id: str | None = None, last_assistant_msg: str | None = None) -> dict:
+    CATEGORIES = ["SUGGEST", "START", "COMPLETE", "CHAT"]
+    active_context = f"Active feature in progress: {active_feature_id}" if active_feature_id else "No active feature."
 
-    CATEGORIES & DEFINITIONS:
-    - SUGGEST: Use this if the user is asking for direction, feeling lost, requesting a new task, or asking for the 'next move'. 
-    - START: Use this if the user is accepting a suggestion, saying "let's go", "okay", "doing this now", or explicitly naming a feature to begin (or when the user agrees to start a task in response to a suggestion).
-    - COMPLETE: Use this if the user is reporting progress, claiming something is 'finished', 'done', 'fixed', 'implemented', or 'ready'.
-    - CHAT: Use this for anything else—general questions, greetings, feedback, or technical queries that don't involve starting/stopping a task.
+    prompt = f"""
+    You are the Intent Router for VibeGuard. Categorize the user's message based on the CURRENT CONTEXT.
+
+    CURRENT PROJECT STATE:
+    - {active_context}
+    - Last assistant message: "{last_assistant_msg}"
+
+    ⚠️ PRIORITY OVERRIDE — CHECK THIS FIRST BEFORE ANYTHING ELSE:
+        - If active feature exists → return START immediately, no further analysis needed.
+    This rule overrides ALL other rules below.
+
+    TASK:
+    Read the last assistant message carefully. Determine:
+    1. Was the assistant proposing a specific action or feature for the user to start? (suggestion_pending = True)
+    2. Was it general conversation, a question answer, or a status update? (suggestion_pending = False)
+
+    Then classify the user's reply using these rules:
+
+    CATEGORIES & STRICT RULES:
+    1. START: Use this when the user is beginning or resuming work on a feature. This includes:
+    - suggestion_pending is True AND user accepts (e.g., "okay", "let's go", "do it", "sure")
+    - Active feature exists AND user says anything casual or acknowledging ("okay", "hi", "yes", "cool")
+    2. SUGGEST: User explicitly asks for a new task or direction ("what's next?", "give me something to do").
+    3. COMPLETE: User confirms work is done ("finished", "done", "pushed", "deployed", "ready for review").
+    4. CHAT: Everything else — questions, acknowledgments when nothing was proposed, technical help.
 
     EXAMPLES:
-    "sounds good, i'll do it" -> START
-    "whats on the menu for today?" -> SUGGEST
-    "api is finally pushing data" -> COMPLETE
-    "how do i fix a 404 error?" -> CHAT
+    - Last msg proposes F001 + user says "okay" -> START
+    - Last msg proposes F001 + user says "actually what about F003?" -> CHAT
+    - Last msg proposes F001 + user says "no, suggest something else" -> SUGGEST
+
+    - Last msg is "Welcome back! Your project is loaded." + user says "okay" AND active feature exists -> START
+    - Last msg is "Welcome back! Your project is loaded." + user says "okay" AND no active feature -> SUGGEST
+    - Last msg is "Welcome back! Your project is loaded." + user says "what should I work on?" -> SUGGEST
+
+    - Last msg answers a question + user says "sounds good" -> CHAT
+    - Last msg answers a question + user says "thanks" -> CHAT
+    - Last msg is a drift warning + user says "okay I'll refocus" -> CHAT
+    - Last msg is a drift warning + user says "actually I'm done with this" -> COMPLETE
+
+    - "F002 is done" -> COMPLETE
+    - "just pushed the changes" -> COMPLETE
+    - "finished the login page" -> COMPLETE
+    - "deployed to staging" -> COMPLETE
+    - "ready for review" -> COMPLETE
+    - "merged the PR" -> COMPLETE
+
+    - "I'm lost, what do I do?" -> SUGGEST
+    - "give me a task" -> SUGGEST
+
+    - "I'm tired" -> CHAT
+    - "this is hard" -> CHAT
+    - "can you explain what F003 means?" -> CHAT
+    - "how long will this take?" -> CHAT
+    - "I want to change the tech stack" -> CHAT
+    - "hello" AND no active feature AND no suggestion pending -> CHAT
 
     User Message: "{user_message}"
 
-    Respond only with the category name (SUGGEST, START, COMPLETE, or CHAT).
+    Respond with exactly one word: SUGGEST, START, COMPLETE, or CHAT.
     """
 
     try:
-        response = await client.chat.completions.create (
+        response = await client.chat.completions.create(
             model=CONVERSATION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0
         )
-        
-        usage = response.usage
 
-        # Clean the output string
+        usage = response.usage
         prediction = response.choices[0].message.content.strip().upper()
-        
-        # VALIDATION GUARDRAIL:
-        # If the LLM hallucinates a new category, default to CHAT
+
         return {
-            "prediction" : prediction if prediction in CATEGORIES else "CHAT",
+            "prediction": prediction if prediction in CATEGORIES else "CHAT",
             "tokens": usage.total_tokens if usage else 0
-}
+        }
 
     except Exception as e:
         logger.error(f"Intent classification failed: {e}")

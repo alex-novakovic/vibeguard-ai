@@ -126,7 +126,9 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
         active = proj_state.active_feature_id
 
         if not initialized:
-            proj_state.feature_log = storage.initialize_feature_log(proj_state.vision_doc)
+            if status == "new":
+               proj_state.feature_log = storage.initialize_feature_log(proj_state.vision_doc)
+
             _session_states[request.session_hash]["agent_session"] = session
             session_log_dump = proj_state.session_log.model_dump() if proj_state.session_log else None
             return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, session_log_dump, True, "existing", session
@@ -135,11 +137,15 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
             proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", None, None)
         elif prev == active:
             if session.drift_note is not None and session.alignment_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, None)
+               proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", session.alignment_note, session.drift_note)
+               session.alignment_note = None
+               session.drift_note = None
             elif session.alignment_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, None)
+                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", session.alignment_note, None)
+                session.alignment_note = None
             elif session.drift_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, None)
+                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, session.drift_note)
+                session.drift_note = None
         elif prev is not None and active is None:
             proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", session.alignment_note, None)
 

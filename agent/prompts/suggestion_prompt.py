@@ -23,6 +23,8 @@ Here is the current project context in JSON format:
 - If "available_to_start_now" is empty, set "feature_id" to null and explain that the project is either complete or blocked.
 - Never suggest a task that is already "complete" or "in_progress".
 - Never suggest a task not present in the "available_to_start_now" list.
+- If there is already a feature marked "in_progress" in the backlog, you MUST continue with that same feature. Do not suggest a new one.
+- NEVER mark a task as complete or move to the next feature unless the user has explicitly confirmed the current one is finished (e.g., "done", "finished", "it's ready"). Assume all in-progress tasks are still active until told otherwise.
 
 ### OUTPUT FORMAT:
 Return ONLY a JSON object. No markdown, no prose:

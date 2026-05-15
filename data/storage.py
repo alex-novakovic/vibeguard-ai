@@ -75,17 +75,17 @@ class Storage(StorageBackend):
         except ValidationError as e:
             raise ParsingFailed(f"Feature log entry for '{feature_id}' is invalid: {e}") from e
 
-        now = now()
+        timestamp = now()
 
         if event == "start":
             item.status = "in_progress"
             item.cycles.append({
-                "started_at": now,
+                "started_at": timestamp,
                 "completed_at": None,
                 "alignment_note": None
             })
             item.drift_events.append({
-                "drift_time": now,
+                "drift_time": timestamp,
                 "drift_note": drift_event
             })
 
@@ -96,7 +96,7 @@ class Storage(StorageBackend):
                 item.cycles[-1]["alignment_note"] = alignment_note
             if drift_event is not None:
                 item.drift_events.append({
-                    "drift_time": now,
+                    "drift_time": timestamp,
                     "drift_note": drift_event
                 })
 
@@ -105,7 +105,7 @@ class Storage(StorageBackend):
                 raise EventError(f"Cannot complete '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
             item.status = "complete"
             last_cycle = item.cycles[-1]
-            last_cycle["completed_at"] = now
+            last_cycle["completed_at"] = timestamp
             last_cycle["alignment_note"] = alignment_note
 
         feature_log["features"][feature_id] = item.model_dump()
