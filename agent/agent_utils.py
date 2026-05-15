@@ -8,9 +8,19 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-async def classify_guardian_intent(user_message: str, active_feature_id: str | None = None, last_assistant_msg: str | None = None) -> dict:
+# is_returning = True only on first message after refresh
+async def classify_guardian_intent(user_message: str, active_feature_id: str | None = None, last_assistant_msg: str | None = None, is_returning: bool = False) -> dict:
     CATEGORIES = ["SUGGEST", "START", "COMPLETE", "CHAT"]
     active_context = f"Active feature in progress: {active_feature_id}" if active_feature_id else "No active feature."
+    
+    # replace the PRIORITY OVERRIDE block with this:
+    override_rule = """
+    ⚠️ PRIORITY OVERRIDE — RETURNING SESSION:
+        The user just returned to an existing session with an active feature.
+        Their first message is almost certainly just an acknowledgment.
+        Return START immediately, no further analysis needed.
+        This rule overrides ALL other rules below.
+    """ if is_returning else ""
 
     prompt = f"""
     You are the Intent Router for VibeGuard. Categorize the user's message based on the CURRENT CONTEXT.
@@ -18,10 +28,8 @@ async def classify_guardian_intent(user_message: str, active_feature_id: str | N
     CURRENT PROJECT STATE:
     - {active_context}
     - Last assistant message: "{last_assistant_msg}"
-
-    ⚠️ PRIORITY OVERRIDE — CHECK THIS FIRST BEFORE ANYTHING ELSE:
-        - If active feature exists → return START immediately, no further analysis needed.
-    This rule overrides ALL other rules below.
+    
+    {override_rule}
 
     TASK:
     Read the last assistant message carefully. Determine:

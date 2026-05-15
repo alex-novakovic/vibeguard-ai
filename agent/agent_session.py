@@ -22,6 +22,7 @@ class AgentSession:
         self.alignment_note: str | None = None
         self.drift_note: str | None = None
         self.logger: Logger = Logger()
+        self.is_returning: bool = False
 
 
 

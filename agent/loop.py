@@ -25,6 +25,7 @@ class AgentState(TypedDict):
     project_state: ProjectState | None
     logger: Logger | None
     just_completed_scoping: bool
+    is_returning: bool
 
 
 # ── 2. NODES ─────────────────────────────────────────────────────────────────
@@ -95,7 +96,7 @@ async def guardian_node(state: AgentState) -> AgentState:
         skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
     else:
-        res = await classify_guardian_intent(user_msg, active_feature_id=active_feature_id, last_assistant_msg=last_assistant_msg)
+        res = await classify_guardian_intent(user_msg, active_feature_id=active_feature_id, last_assistant_msg=last_assistant_msg,is_returning=state.get("is_returning", False))
         intent = res["prediction"]
         skill_tokens += res["tokens"]
 
@@ -229,7 +230,8 @@ class Agent(AgentFunctions):
             "scoping": session.scoping,
             "project_state": session.project_state,
             "just_completed_scoping": session.just_completed_scoping,
-            "logger":logger
+            "logger":logger,
+            "is_returning": session.is_returning
         }
 
         # run the graph
@@ -241,5 +243,6 @@ class Agent(AgentFunctions):
         session.just_completed_scoping = result["just_completed_scoping"]
         session.scoping = result["scoping"]
         session.messages = result["messages"]
+        session.is_returning = False
 
         return result["response"], session
