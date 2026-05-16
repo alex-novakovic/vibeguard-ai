@@ -1,31 +1,15 @@
 import json
-from typing import Dict, TypedDict, Literal, List
+from typing import Literal
 from langgraph.graph import StateGraph, END
-from agent.scoping import ScopingSession
 from data.state import ProjectState
-from data.logger import Logger
-from agent.agent_session import AgentSession, PHASE_GUARDIAN, PHASE_SCOPING
+from agent.agent_session import AgentSession, AgentState, PHASE_GUARDIAN, PHASE_SCOPING
 from interfaces import AgentFunctions
 from agent.suggestion import suggest_next_task
 from agent.agent_utils import classify_guardian_intent, generate_guardian_response
 from agent.config import logger
 from agent.start_feature import extract_feature_id_from_msg, start_feature
+from agent.complete import handle_completion_flow, apply_completion_res
 
-
-
-# ── 1. STATE ─────────────────────────────────────────────────────────────────
-# This is what flows through the graph — replaces agent_state dict
-class AgentState(TypedDict):
-    user_id: str
-    phase: str
-    user_message: str
-    messages: List[Dict[str, str]]
-    response: str
-    scoping: ScopingSession | None
-    project_state: ProjectState | None
-    logger: Logger | None
-    just_completed_scoping: bool
-    is_returning: bool
 
 
 # ── 2. NODES ─────────────────────────────────────────────────────────────────
@@ -52,7 +36,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
     state["logger"].log_llm_call(
         function_name="scoping_session",
-        prompt=state["scoping"].conversation_history,
+        prompt=state["scoping"].chat_messages,
         response=json.dumps(vision_doc.model_dump()),
         tokens=scoping.total_tokens,
         user_id=state["user_id"],
@@ -79,22 +63,27 @@ async def guardian_node(state: AgentState) -> AgentState:
 
     skill_tokens = 0
     skill_output = ""
+    tokens_accounted = False 
 
+    current_completion_status = state.get("completion_status", "IDLE")
+    
     # 1. ADD USER MESSAGE TO HISTORY IMMEDIATELY
     if "messages" not in state or state["messages"] is None:
         state["messages"] = []
     state["messages"].append({"role": "user", "content": user_msg})
     
-    
-    active_feature_id = next((fid for fid, f in project_state.feature_log["features"].items() if f["status"] == "in_progress"),None)
+    active_feature_id = next((fid for fid, f in project_state.feature_log["features"].items() if f["status"] == "in_progress"), None)
 
-    last_assistant_msg = next((m["content"] for m in reversed(state["messages"]) if m["role"] == "assistant"),None)
+    last_assistant_msg = next((m["content"] for m in reversed(state["messages"]) if m["role"] == "assistant"), None)
 
     if state.get("just_completed_scoping"):
         res = await suggest_next_task(project_state)
         skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
         skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
+    elif current_completion_status == "COLLECTING":                        
+        completion_res = await handle_completion_flow(state, user_msg, project_state)
+        skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
     else:
         res = await classify_guardian_intent(user_msg, active_feature_id=active_feature_id, last_assistant_msg=last_assistant_msg,is_returning=state.get("is_returning", False))
         intent = res["prediction"]
@@ -118,12 +107,15 @@ async def guardian_node(state: AgentState) -> AgentState:
                     case "START":
                         skill_output = f"ACTION: Feature {res['feature_id']} marked as started. Monitoring mode ON."
 
-            case "COMPLETE":
-                skill_output = "COMPLETE: User reported feature done. Pending alignment check."
+            case "COMPLETE":  # just the first message on completion, if the message explains enough, great, if not, current_completion_status == "COLLECTING"
+                # First message claiming completion — enter the flow
+                completion_res = await handle_completion_flow(state, user_msg, project_state)
+                skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
 
             case "CHAT":
                 if active_feature_id:
                     feature_name = project_state.feature_log["features"][active_feature_id]["name"]
+                    project_state.previous_feature_id = active_feature_id
                     skill_output = f"CHAT: User is asking a general question. Remind them they are currently working on {active_feature_id} - {feature_name} and steer back to it."
                 else:
                     skill_output = "CHAT: No specific skill triggered."
@@ -143,7 +135,7 @@ async def guardian_node(state: AgentState) -> AgentState:
     final_response = llm_res["text"]
     skill_tokens += llm_res.get("tokens", 0)
     # add the tokens to the projectstate for overall accounting
-    if project_state:
+    if project_state and not tokens_accounted:
         project_state.current_cycle_tokens += skill_tokens
     
     state["messages"].append({"role": "assistant", "content": final_response})
@@ -219,7 +211,9 @@ class Agent(AgentFunctions):
         if not user_message or not user_message.strip():
             return "Please type a message to get started.", session
 
-    
+        # Setup baseline state values or fetch ongoing sub-flow parameter configurations
+        initial_completion_status = getattr(session, "completion_status", "IDLE")
+        initial_completion_context = getattr(session, "completion_context", {"collected_info": [], "attempts": 0})
         # build input state for this turn
         input_state: AgentState = {
             "user_id": session.user_id,
@@ -231,7 +225,10 @@ class Agent(AgentFunctions):
             "project_state": session.project_state,
             "just_completed_scoping": session.just_completed_scoping,
             "logger":logger,
-            "is_returning": session.is_returning
+            "is_returning": session.is_returning,
+            "alignment_note":session.alignment_note,
+            "completion_status": initial_completion_status,
+            "completion_context": initial_completion_context
         }
 
         # run the graph
@@ -244,5 +241,10 @@ class Agent(AgentFunctions):
         session.scoping = result["scoping"]
         session.messages = result["messages"]
         session.is_returning = False
+
+        # Save our new sub-flow tracker states into memory context
+        session.completion_status = result["completion_status"]
+        session.completion_context = result["completion_context"]
+        session.alignment_note = result["alignment_note"]
 
         return result["response"], session

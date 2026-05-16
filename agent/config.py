@@ -1,6 +1,5 @@
 import os
 import logging
-from openai import OpenAI
 from dotenv import load_dotenv
 from data.logger import Logger
 from openai import AsyncOpenAI

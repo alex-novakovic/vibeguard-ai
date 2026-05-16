@@ -64,7 +64,7 @@ def on_startup(user_id, request: gr.Request):
         [{"role": "assistant", "content": WELCOME}],
         None,
         None,
-        None,
+        state.session_log.model_dump() if state.session_log else None,
         status,
         session,
         False  # ← initialized_state = False, will initialize on first send
@@ -134,8 +134,7 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
         if not initialized:
             proj_state.feature_log = storage.initialize_feature_log(proj_state.vision_doc)
             _session_states[request.session_hash]["agent_session"] = session
-            session_log_dump = proj_state.session_log.model_dump() if proj_state.session_log else None
-            return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, session_log_dump, True, "existing", session
+            return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), True, "existing", session
 
         if prev is None and active is not None:
             proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", None, None)
@@ -152,10 +151,10 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
                 session.drift_note = None
         elif prev is not None and active is None:
             proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", session.alignment_note, None)
-
-        session_log_dump = proj_state.session_log.model_dump() if proj_state.session_log else None
+            session.alignment_note = None
+            
         _session_states[request.session_hash]["agent_session"] = session
-        return history, history, "", gr.update(), proj_state.feature_log, session_log_dump, initialized, status, session
+        return history, history, "", gr.update(), proj_state.feature_log, gr.update(), initialized, status, session
 
     return history, history, "", gr.update(), gr.update(), gr.update(), initialized, status, session
 
