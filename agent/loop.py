@@ -115,6 +115,7 @@ async def guardian_node(state: AgentState) -> AgentState:
             case "CHAT":
                 if active_feature_id:
                     feature_name = project_state.feature_log["features"][active_feature_id]["name"]
+                    project_state.previous_feature_id = active_feature_id
                     skill_output = f"CHAT: User is asking a general question. Remind them they are currently working on {active_feature_id} - {feature_name} and steer back to it."
                 else:
                     skill_output = "CHAT: No specific skill triggered."

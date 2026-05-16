@@ -84,10 +84,11 @@ class Storage(StorageBackend):
                 "completed_at": None,
                 "alignment_note": None
             })
-            item.drift_events.append({
-                "drift_time": timestamp,
-                "drift_note": drift_event
-            })
+            if drift_event is not None:
+                item.drift_events.append({
+                    "drift_time": timestamp,
+                    "drift_note": drift_event
+                })
 
         elif event == "in_progress":
             if not item.cycles:
