@@ -36,7 +36,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
     state["logger"].log_llm_call(
         function_name="scoping_session",
-        prompt=state["scoping"].conversation_history,
+        prompt=state["scoping"].chat_messages,
         response=json.dumps(vision_doc.model_dump()),
         tokens=scoping.total_tokens,
         user_id=state["user_id"],
@@ -115,6 +115,7 @@ async def guardian_node(state: AgentState) -> AgentState:
             case "CHAT":
                 if active_feature_id:
                     feature_name = project_state.feature_log["features"][active_feature_id]["name"]
+                    project_state.previous_feature_id = active_feature_id
                     skill_output = f"CHAT: User is asking a general question. Remind them they are currently working on {active_feature_id} - {feature_name} and steer back to it."
                 else:
                     skill_output = "CHAT: No specific skill triggered."
