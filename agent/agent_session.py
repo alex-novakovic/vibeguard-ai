@@ -21,8 +21,7 @@ class AgentState(TypedDict):
     just_completed_scoping: bool
     is_returning: bool
     alignment_note: str | None
-    # ─── ADDED FOR COMPLETION FLOW ───
-    completion_status: Literal["IDLE", "COLLECTING", "ALIGNMENT_CHECK"]  
+    completion_status: Literal["IDLE", "COLLECTING"]  
     completion_context: Dict[str, any]  # Stores collected data temporarily
 
 class AgentSession:
@@ -41,8 +40,8 @@ class AgentSession:
         self.drift_note: str | None = None
         self.logger: Logger = Logger()
         self.is_returning: bool = False
-        self.completion_in_progress: bool = False
-        self.completion_context: list[str] = []  # collects user answers
+        self.completion_status: str = "IDLE"
+        self.completion_context: dict = {"collected_info": [], "attempts": 0}
 
 
 

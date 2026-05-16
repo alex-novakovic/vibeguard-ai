@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from agent.prompts.guardian_prompt import GUARDIAN_PROMPT
 from agent.config import CONVERSATION_MODEL, client
@@ -28,7 +27,7 @@ async def classify_guardian_intent(user_message: str, active_feature_id: str | N
     CURRENT PROJECT STATE:
     - {active_context}
     - Last assistant message: "{last_assistant_msg}"
-    
+
     {override_rule}
 
     TASK:
@@ -39,9 +38,10 @@ async def classify_guardian_intent(user_message: str, active_feature_id: str | N
     Then classify the user's reply using these rules:
 
     CATEGORIES & STRICT RULES:
-    1. START: Use this when the user is beginning or resuming work on a feature. This includes:
+    1. START: Use this when the user is committing to begin a feature they haven't started yet. This includes:
     - suggestion_pending is True AND user accepts (e.g., "okay", "let's go", "do it", "sure")
-    - Active feature exists AND user says anything casual or acknowledging ("okay", "hi", "yes", "cool")
+    - Active feature exists AND user says they are about to start ("I'll start now", "beginning now", "on it")
+    - Do NOT use START if the user is describing work already in progress, asking questions, or reporting plans — that is CHAT.
     2. SUGGEST: User explicitly asks for a new task or direction ("what's next?", "give me something to do").
     3. COMPLETE: User confirms work is done ("finished", "done", "pushed", "deployed", "ready for review").
     4. CHAT: Everything else — questions, acknowledgments when nothing was proposed, technical help.
@@ -76,6 +76,9 @@ async def classify_guardian_intent(user_message: str, active_feature_id: str | N
     - "how long will this take?" -> CHAT
     - "I want to change the tech stack" -> CHAT
     - "hello" AND no active feature AND no suggestion pending -> CHAT
+    - Active feature exists + user says "okay I'm planning to set up the DB" -> CHAT
+    - Active feature exists + user says "I'm going to install the libraries now" -> CHAT
+    - Active feature exists + user says "let's start" (no prior work mentioned) -> START
 
     User Message: "{user_message}"
 
