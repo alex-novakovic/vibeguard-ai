@@ -45,6 +45,10 @@ def on_startup(user_id, request: gr.Request):
     _session_states[request.session_hash]["agent_session"] = session
     if status == "existing":
         session.phase = PHASE_GUARDIAN
+        # restore active feature and set is_returning
+        features = state.feature_log.get("features", {})
+        active = next((fid for fid, f in features.items() if f["status"] == "in_progress"),None)
+        session.is_returning = active is not None  # ← set here
         return (
             user_id,
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
@@ -53,6 +57,7 @@ def on_startup(user_id, request: gr.Request):
             state.session_log.model_dump() if state.session_log else None,
             status,
             session,
+            True  # ← initialized_state = True, skip initialize_feature_log entirely
         )
     return (
         user_id,
@@ -62,6 +67,7 @@ def on_startup(user_id, request: gr.Request):
         None,
         status,
         session,
+        False  # ← initialized_state = False, will initialize on first send
     )
 
 def save_logs(session):
@@ -197,7 +203,7 @@ with gr.Blocks(title="VibeGuard AI") as demo:
     demo.load(
         on_startup,
         inputs=[user_id_browser],
-        outputs=[user_id_browser, chatbot, vision_display, log_display, session_display, status_state, session_state],
+        outputs=[user_id_browser, chatbot, vision_display, log_display, session_display, status_state, session_state,initialized_state],
     )
     gr.Timer(300).tick(save_logs, inputs=[session_state], outputs=[chatbot])
     demo.unload(on_exit)

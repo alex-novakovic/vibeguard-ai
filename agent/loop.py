@@ -9,6 +9,7 @@ from interfaces import AgentFunctions
 from agent.suggestion import suggest_next_task
 from agent.agent_utils import classify_guardian_intent, generate_guardian_response
 from agent.config import logger
+from agent.start_feature import extract_feature_id_from_msg, start_feature
 
 
 
@@ -24,6 +25,7 @@ class AgentState(TypedDict):
     project_state: ProjectState | None
     logger: Logger | None
     just_completed_scoping: bool
+    is_returning: bool
 
 
 # ── 2. NODES ─────────────────────────────────────────────────────────────────
@@ -33,16 +35,6 @@ async def scoping_node(state: AgentState) -> AgentState:
     """Handles one turn of the scoping conversation."""
     scoping = state["scoping"]
     response = await scoping.run_conversation_turn(state["user_message"])
-
-    '''
-    state["logger"].log_llm_call(
-        function_name="run_conversation_turn",
-        prompt=state["user_message"],
-        response=response,
-        tokens=scoping.total_tokens,
-        user_id=state["user_id"],
-    )
-    '''
 
     return {**state, "response": response, "phase": PHASE_SCOPING}
 
@@ -65,7 +57,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
         tokens=scoping.total_tokens,
         user_id=state["user_id"],
     )
-    
+
     project_state.current_cycle_tokens = 0                     # reset for guardian cycle
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
     clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to the first task?"
@@ -92,23 +84,52 @@ async def guardian_node(state: AgentState) -> AgentState:
     if "messages" not in state or state["messages"] is None:
         state["messages"] = []
     state["messages"].append({"role": "user", "content": user_msg})
+    
+    
+    active_feature_id = next((fid for fid, f in project_state.feature_log["features"].items() if f["status"] == "in_progress"),None)
+
+    last_assistant_msg = next((m["content"] for m in reversed(state["messages"]) if m["role"] == "assistant"),None)
 
     if state.get("just_completed_scoping"):
         res = await suggest_next_task(project_state)
         skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
-        # Add tokens from suggestion to the session's total
         skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
     else:
-        res = await classify_guardian_intent(user_msg)
+        res = await classify_guardian_intent(user_msg, active_feature_id=active_feature_id, last_assistant_msg=last_assistant_msg,is_returning=state.get("is_returning", False))
         intent = res["prediction"]
-        # Add tokens from intent classification to the session's total
         skill_tokens += res["tokens"]
-        if intent == "SUGGEST":
-            res = await suggest_next_task(project_state)
-            skill_output = f"SUGGESTION: {res['feature_name']} - {res['reason']}"
-            # Add tokens from suggestion to the session's total
-            skill_tokens += res.get("tokens", 0)
+
+        match intent:
+            case "SUGGEST":
+                res = await suggest_next_task(project_state)
+                skill_output = f"SUGGESTION: {res['feature_name']} - {res['reason']}"
+                skill_tokens += res.get("tokens", 0)
+
+            case "START":
+                res = await extract_feature_id_from_msg(user_msg, project_state.feature_log, state["messages"][-10:])
+                skill_tokens += res.get("tokens", 0)
+                action_result = await start_feature(project_state, res["feature_id"])
+                match action_result["flag"]:
+                    case "RESUMING":
+                        skill_output = f"ACTION: Resuming {res['feature_id']} - picking up where we left off."
+                    case "ERROR":
+                        skill_output = f"CHAT: Could not start feature — {action_result['message']}"
+                    case "START":
+                        skill_output = f"ACTION: Feature {res['feature_id']} marked as started. Monitoring mode ON."
+
+            case "COMPLETE":
+                skill_output = "COMPLETE: User reported feature done. Pending alignment check."
+
+            case "CHAT":
+                if active_feature_id:
+                    feature_name = project_state.feature_log["features"][active_feature_id]["name"]
+                    skill_output = f"CHAT: User is asking a general question. Remind them they are currently working on {active_feature_id} - {feature_name} and steer back to it."
+                else:
+                    skill_output = "CHAT: No specific skill triggered."
+
+            case _:
+                skill_output = "CHAT: Unrecognized intent."
     
     # 4. Generate Final Response with Context
     # We pass only the last 10 messages for token efficiency
@@ -209,7 +230,8 @@ class Agent(AgentFunctions):
             "scoping": session.scoping,
             "project_state": session.project_state,
             "just_completed_scoping": session.just_completed_scoping,
-            "logger":logger
+            "logger":logger,
+            "is_returning": session.is_returning
         }
 
         # run the graph
@@ -221,5 +243,6 @@ class Agent(AgentFunctions):
         session.just_completed_scoping = result["just_completed_scoping"]
         session.scoping = result["scoping"]
         session.messages = result["messages"]
+        session.is_returning = False
 
         return result["response"], session
