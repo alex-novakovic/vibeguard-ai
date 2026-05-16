@@ -82,7 +82,7 @@ class Storage(StorageBackend):
             item.cycles.append({
                 "started_at": timestamp,
                 "completed_at": None,
-                "alignment_note": None
+                "alignment_notes": []
             })
             if drift_event is not None:
                 item.drift_events.append({
@@ -94,7 +94,10 @@ class Storage(StorageBackend):
             if not item.cycles:
                 raise EventError(f"Cannot update '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
             if alignment_note is not None:
-                item.cycles[-1]["alignment_note"] = alignment_note
+                item.cycles[-1]["alignment_notes"].append({
+                    "timestamp": timestamp,
+                    "note": alignment_note
+                })
             if drift_event is not None:
                 item.drift_events.append({
                     "drift_time": timestamp,
@@ -107,7 +110,11 @@ class Storage(StorageBackend):
             item.status = "complete"
             last_cycle = item.cycles[-1]
             last_cycle["completed_at"] = timestamp
-            last_cycle["alignment_note"] = alignment_note
+            if alignment_note is not None:
+                last_cycle["alignment_notes"].append({
+                    "timestamp": timestamp,
+                    "note": alignment_note
+                })
 
         feature_log["features"][feature_id] = item.model_dump()
 

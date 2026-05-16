@@ -33,7 +33,7 @@ class FeatureLogItem(BaseModel):
     model_config = {"frozen": False} #allow mutation for in-place updates
     name: str
     status: Literal["to_do", "in_progress", "complete"]
-    cycles: List[dict]  # start_time, end_time, allignment_note, tokens_used
+    cycles: List[dict]  # started_at, completed_at, alignment_notes: [{timestamp, note}]
     drift_events: List[dict]
 
 class SessionEntry(BaseModel):
