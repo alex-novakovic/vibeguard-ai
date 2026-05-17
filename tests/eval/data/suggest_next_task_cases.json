@@ -1,0 +1,737 @@
+[
+  {
+    "id": "case_001",
+    "description": "All features to_do, no dependencies — should suggest critical priority first",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": ["Python", "Gradio", "Etherscan API"],
+        "externalDependencies": ["Etherscan API"],
+        "niceToHave": ["Dark mode", "CSV export"],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions for a given address.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 90,
+            "dependencies": ["F001"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Display Transactions",
+            "description": "Render the fetched transactions in a readable table in the UI.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": ["F002"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "to_do", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      }
+    },
+    "expected_feature_id": "F001",
+    "reason": "F001 is critical priority and all others depend on it"
+  },
+  {
+    "id": "case_002",
+    "description": "F001 complete — F002 dependency now met, should suggest F002",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": ["Python", "Gradio", "Etherscan API"],
+        "externalDependencies": ["Etherscan API"],
+        "niceToHave": ["Dark mode", "CSV export"],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "complete",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions for a given address.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 90,
+            "dependencies": ["F001"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Display Transactions",
+            "description": "Render the fetched transactions in a readable table in the UI.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": ["F002"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      }
+    },
+    "expected_feature_id": "F002",
+    "reason": "F001 done, F002 dependency met, F003 still blocked by F002"
+  },
+  {
+    "id": "case_003",
+    "description": "F001 and F002 complete — only F003 remaining and unblocked",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": ["Python", "Gradio", "Etherscan API"],
+        "externalDependencies": ["Etherscan API"],
+        "niceToHave": ["Dark mode", "CSV export"],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "complete",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions for a given address.",
+            "priority": "high",
+            "status": "complete",
+            "estimatedMinutes": 90,
+            "dependencies": ["F001"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Display Transactions",
+            "description": "Render the fetched transactions in a readable table in the UI.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": ["F002"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "complete", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      }
+    },
+    "expected_feature_id": "F003",
+    "reason": "F001 and F002 done, F003 is the only remaining feature"
+  },
+  {
+    "id": "case_004",
+    "description": "All features complete — should return no tasks available",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": ["Python", "Gradio", "Etherscan API"],
+        "externalDependencies": ["Etherscan API"],
+        "niceToHave": ["Dark mode", "CSV export"],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "complete",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions for a given address.",
+            "priority": "high",
+            "status": "complete",
+            "estimatedMinutes": 90,
+            "dependencies": ["F001"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Display Transactions",
+            "description": "Render the fetched transactions in a readable table in the UI.",
+            "priority": "high",
+            "status": "complete",
+            "estimatedMinutes": 60,
+            "dependencies": ["F002"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "complete", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "complete", "cycles": [], "drift_events": []}
+        }
+      }
+    },
+    "expected_feature_id": null,
+    "reason": "All features complete, nothing left to suggest"
+  },
+  {
+    "id": "case_005",
+    "description": "F002 in_progress — should not suggest any feature",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": ["Python", "Gradio", "Etherscan API"],
+        "externalDependencies": ["Etherscan API"],
+        "niceToHave": ["Dark mode", "CSV export"],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "complete",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions for a given address.",
+            "priority": "high",
+            "status": "in_progress",
+            "estimatedMinutes": 90,
+            "dependencies": ["F001"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Display Transactions",
+            "description": "Render the fetched transactions in a readable table in the UI.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": ["F002"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F004",
+            "name": "Implement Search Functionality",
+            "description": "Allow users to filter transactions by date or amount.",
+            "priority": "medium",
+            "status": "to_do",
+            "estimatedMinutes": 90,
+            "dependencies": ["F001"],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "in_progress", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []},
+          "F004": {"name": "Implement Search Functionality", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      }
+    },
+    "expected_feature_id": "F002",
+    "reason": "Nothing to suggest while some feature is marked as in_progress"
+  }, 
+  {
+    "id": "case_006",
+    "description": "Two features ready with same priority — scope flagged one vs clean one. Should prefer clean.",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": "Must be completed in 5 days.",
+        "techStack": [
+          "Python",
+          "Gradio",
+          "Etherscan API"
+        ],
+        "externalDependencies": [
+          "Etherscan API"
+        ],
+        "niceToHave": [
+          "Dark mode"
+        ],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Real-time WebSocket Stream",
+            "description": "Stream live transaction updates via WebSocket connection.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 300,
+            "dependencies": [],
+            "confidence": "low",
+            "scopeFlag": true,
+            "scopeFlagReason": "Flagged as too complex for 5 day timeline. Developer chose to keep it."
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {
+            "name": "Set up Development Environment",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          },
+          "F002": {
+            "name": "Real-time WebSocket Stream",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          }
+        }
+      }
+    },
+    "expected_feature_id": "F001",
+    "reason": "Both high priority but F002 is scope flagged as too complex for 5 day timeline and has low confidence — F001 is safer and unblocks other work"
+  },
+  {
+  "id": "case_007",
+  "description": "Scope flagged feature with low confidence unblocks more work but is risky — should prefer safe feature first",
+  "project_state": {
+    "vision_doc": {
+      "projectName": "Ethereum Transaction Tracker",
+      "createdAt": "2026-05-15T10:00:00+02:00",
+      "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+      "targetUser": "Crypto investors who want to monitor their wallet activity.",
+      "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+      "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+      "availableTime": "6 days",
+      "availableTimeHours": 48,
+      "constraints": "No paid APIs beyond Etherscan.",
+      "techStack": ["Python", "Gradio", "Etherscan API"],
+      "externalDependencies": ["Etherscan API"],
+      "niceToHave": [],
+      "backlog": [
+        {
+          "id": "F001",
+          "name": "Set up Development Environment",
+          "description": "Install necessary tools and configure the project structure.",
+          "priority": "high",
+          "status": "to_do",
+          "estimatedMinutes": 60,
+          "dependencies": [],
+          "confidence": "high",
+          "scopeFlag": false,
+          "scopeFlagReason": null
+        },
+        {
+          "id": "F002",
+          "name": "ML-based Transaction Anomaly Detection",
+          "description": "Train a model to detect unusual transaction patterns using scikit-learn.",
+          "priority": "high",
+          "status": "to_do",
+          "estimatedMinutes": 480,
+          "dependencies": [],
+          "confidence": "low",
+          "scopeFlag": true,
+          "scopeFlagReason": "Flagged during scoping — ML training is out of scope for a simple tracker and conflicts with the no-paid-APIs constraint. Developer chose to keep it."
+        },
+        {
+          "id": "F003",
+          "name": "Display Transactions",
+          "description": "Render fetched transactions in a table in the UI.",
+          "priority": "high",
+          "status": "to_do",
+          "estimatedMinutes": 60,
+          "dependencies": ["F002"],
+          "confidence": "high",
+          "scopeFlag": false,
+          "scopeFlagReason": null
+        }
+      ]
+    },
+    "feature_log": {
+      "features": {
+        "F001": {"name": "Set up Development Environment", "status": "to_do", "cycles": [], "drift_events": []},
+        "F002": {"name": "ML-based Transaction Anomaly Detection", "status": "to_do", "cycles": [], "drift_events": []},
+        "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+      }
+    }
+  },
+  "expected_feature_id": "F001",
+  "reason": "F002 is scope flagged, low confidence, 8 hours estimated, and conflicts with constraints — F001 is the safe choice even though F002 would unblock F003"
+},
+  {
+    "id": "case_008",
+    "description": "Medium priority feature ready, high priority feature blocked. Should pick the ready medium one.",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": [
+          "Python",
+          "Gradio",
+          "Etherscan API"
+        ],
+        "externalDependencies": [
+          "Etherscan API"
+        ],
+        "niceToHave": [],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 90,
+            "dependencies": [
+              "F003"
+            ],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Basic UI Styling",
+            "description": "Apply minimal CSS styling to make the interface readable.",
+            "priority": "medium",
+            "status": "to_do",
+            "estimatedMinutes": 45,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {
+            "name": "Fetch Transaction Data",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          },
+          "F002": {
+            "name": "Basic UI Styling",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          },
+          "F003": {
+            "name": "Set up Development Environment",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          }
+        }
+      }
+    },
+    "expected_feature_id": "F003",
+    "reason": "F001 is blocked by F003, F003 is critical and available — should pick F003 not F002 even though F002 has no dependencies"
+  },
+  {
+    "id": "case_009",
+    "description": "All high priority features done, only low confidence feature remains. Should still suggest it.",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": [
+          "Python",
+          "Gradio",
+          "Etherscan API"
+        ],
+        "externalDependencies": [
+          "Etherscan API"
+        ],
+        "niceToHave": [],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Set up Development Environment",
+            "description": "Install necessary tools and configure the project structure.",
+            "priority": "critical",
+            "status": "to_do",
+            "estimatedMinutes": 60,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Fetch Transaction Data",
+            "description": "Call the Etherscan API to retrieve transactions.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 90,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F003",
+            "name": "Implement Search Functionality",
+            "description": "Allow filtering transactions by date range and amount.",
+            "priority": "medium",
+            "status": "to_do",
+            "estimatedMinutes": 120,
+            "dependencies": [],
+            "confidence": "low",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {
+            "name": "Set up Development Environment",
+            "status": "complete",
+            "cycles": [],
+            "drift_events": []
+          },
+          "F002": {
+            "name": "Fetch Transaction Data",
+            "status": "complete",
+            "cycles": [],
+            "drift_events": []
+          },
+          "F003": {
+            "name": "Implement Search Functionality",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          }
+        }
+      }
+    },
+    "expected_feature_id": "F003",
+    "reason": "F001 and F002 done, F003 is the only remaining feature — should suggest it despite low confidence with a caveat"
+  },
+  {
+    "id": "case_010",
+    "description": "Two features ready, one directly enables success criteria, one does not. Should prefer the one tied to success criteria.",
+    "project_state": {
+      "vision_doc": {
+        "projectName": "Ethereum Transaction Tracker",
+        "createdAt": "2026-05-15T10:00:00+02:00",
+        "visionStatement": "A web app that lets users track their Ethereum transactions in real time.",
+        "targetUser": "Crypto investors who want to monitor their wallet activity.",
+        "problemStatement": "Developers lose track of wallet transactions and have no easy way to visualize them.",
+        "successCriteria": "User can enter a wallet address and see a list of recent transactions displayed in a table.",
+        "availableTime": "6 days",
+        "availableTimeHours": 48,
+        "constraints": null,
+        "techStack": [
+          "Python",
+          "Gradio",
+          "Etherscan API"
+        ],
+        "externalDependencies": [
+          "Etherscan API"
+        ],
+        "niceToHave": [],
+        "backlog": [
+          {
+            "id": "F001",
+            "name": "Display Transactions in Table",
+            "description": "Render fetched transactions in a clean, paginated table in the Gradio UI.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 90,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          },
+          {
+            "id": "F002",
+            "name": "Add Loading Spinner",
+            "description": "Show a spinner while transactions are being fetched from the API.",
+            "priority": "high",
+            "status": "to_do",
+            "estimatedMinutes": 30,
+            "dependencies": [],
+            "confidence": "high",
+            "scopeFlag": false,
+            "scopeFlagReason": null
+          }
+        ]
+      },
+      "feature_log": {
+        "features": {
+          "F001": {
+            "name": "Display Transactions in Table",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          },
+          "F002": {
+            "name": "Add Loading Spinner",
+            "status": "to_do",
+            "cycles": [],
+            "drift_events": []
+          }
+        }
+      }
+    },
+    "expected_feature_id": "F001",
+    "reason": "Both high priority but F001 directly fulfills the success criteria — user can see transactions in a table. F002 is a polish feature that does not move the needle on done."
+  }
+]

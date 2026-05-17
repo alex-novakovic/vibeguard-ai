@@ -1,0 +1,98 @@
+{
+  "total_cases": 10,
+  "correct": 10,
+  "accuracy": 1.0,
+  "total_tokens": 8905,
+  "results": [
+    {
+      "id": "case_001",
+      "description": "All features to_do, no dependencies — should suggest critical priority first",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "Setting up the development environment is the critical first step. It directly enables all subsequent tasks by providing the necessary tools and project structure. Completing this task immediately unlocks the ability to fetch and display transaction data, moving the project closer to the success criteria.",
+      "tokens": 1132
+    },
+    {
+      "id": "case_002",
+      "description": "F001 complete — F002 dependency now met, should suggest F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "This task is the next logical step towards achieving the project's success criteria. Fetching transaction data is crucial for displaying transactions, which is the core functionality of the application. Completing this task unblocks the high-priority 'Display Transactions' feature.",
+      "tokens": 1141
+    },
+    {
+      "id": "case_003",
+      "description": "F001 and F002 complete — only F003 remaining and unblocked",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "This task directly contributes to the project's success criteria by rendering the fetched transaction data in a user-friendly format. Completing this high-priority task unblocks the ability to test the core functionality of the application and allows for user interaction with the data.",
+      "tokens": 1147
+    },
+    {
+      "id": "case_004",
+      "description": "All features complete — should return no tasks available",
+      "passed": true,
+      "expected": null,
+      "got": null,
+      "reason": "All features are complete or blocked by dependencies.",
+      "tokens": 0
+    },
+    {
+      "id": "case_005",
+      "description": "F002 in_progress — should not suggest any feature",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "F002 is already in progress. Continue working on it before starting something new.",
+      "tokens": 0
+    },
+    {
+      "id": "case_006",
+      "description": "Two features ready with same priority — scope flagged one vs clean one. Should prefer clean.",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "Setting up the development environment is the most critical first step. It directly enables all subsequent tasks by providing the necessary tools and project structure. This aligns with the project vision by creating a foundation for building the Ethereum transaction tracker.",
+      "tokens": 1031
+    },
+    {
+      "id": "case_007",
+      "description": "Scope flagged feature with low confidence unblocks more work but is risky — should prefer safe feature first",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "Setting up the development environment is the most critical first step. It directly enables all subsequent tasks by providing the necessary tools and project structure. This aligns with the project vision by laying the foundation for building the transaction tracker.",
+      "tokens": 1181
+    },
+    {
+      "id": "case_008",
+      "description": "Medium priority feature ready, high priority feature blocked. Should pick the ready medium one.",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "Setting up the development environment (F003) is critical because it unblocks all other tasks. This aligns with the project vision by establishing the foundation for fetching transaction data and building the user interface. Completing this task first ensures a smooth development process.",
+      "tokens": 1126
+    },
+    {
+      "id": "case_009",
+      "description": "All high priority features done, only low confidence feature remains. Should still suggest it.",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "Implementing search functionality directly contributes to the success criteria of allowing users to view their transactions. This feature enhances the user experience by enabling filtering, which is a key aspect of transaction tracking. Completing this task also allows for future features that depend on the ability to search and filter data.",
+      "tokens": 1127
+    },
+    {
+      "id": "case_010",
+      "description": "Two features ready, one directly enables success criteria, one does not. Should prefer the one tied to success criteria.",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "This task directly contributes to the success criteria by enabling users to view their transactions in a table format. Completing this high-priority task moves the project closer to a functional MVP and unblocks further development of the user interface.",
+      "tokens": 1020
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+[
+  {
+    "id": "case_001",
+    "description": "Suggestion pending + affirmative acceptance -> START",
+    "input": {
+      "user_message": "okay let's go",
+      "active_feature_id": null,
+      "last_assistant_msg": "I suggest starting with F001 — setting up the project scaffold. Ready to begin?",
+      "is_returning": false
+    },
+    "expected": "START"
+  },
+  {
+    "id": "case_002",
+    "description": "Returning session with active feature + acknowledgment -> START (override rule)",
+    "input": {
+      "user_message": "sure",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "Welcome back! Your project is loaded.",
+      "is_returning": true
+    },
+    "expected": "START"
+  },
+  {
+    "id": "case_003",
+    "description": "Active feature + explicit commitment to start now -> START",
+    "input": {
+      "user_message": "I'll start now",
+      "active_feature_id": "F003",
+      "last_assistant_msg": "F003 is waiting for you whenever you're ready.",
+      "is_returning": false
+    },
+    "expected": "START"
+  },
+  {
+    "id": "case_004",
+    "description": "Suggestion pending + minimal affirmative -> START",
+    "input": {
+      "user_message": "do it",
+      "active_feature_id": null,
+      "last_assistant_msg": "Want me to kick off F004 — the auth flow?",
+      "is_returning": false
+    },
+    "expected": "START"
+  },
+  {
+    "id": "case_005",
+    "description": "Explicit next-task request, no active feature -> SUGGEST",
+    "input": {
+      "user_message": "what should I work on next?",
+      "active_feature_id": null,
+      "last_assistant_msg": "Great, the setup is done!",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_006",
+    "description": "Returning session, no active feature, acknowledgment -> SUGGEST",
+    "input": {
+      "user_message": "okay",
+      "active_feature_id": null,
+      "last_assistant_msg": "Welcome back! Your project is loaded.",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_007",
+    "description": "User explicitly asks for a task -> SUGGEST",
+    "input": {
+      "user_message": "give me something to do",
+      "active_feature_id": null,
+      "last_assistant_msg": "Let me know when you're ready to continue.",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_008",
+    "description": "User rejects suggestion and asks for alternative -> SUGGEST",
+    "input": {
+      "user_message": "no, suggest something else",
+      "active_feature_id": null,
+      "last_assistant_msg": "I suggest starting with F001 — setting up the project scaffold. Ready to begin?",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_009",
+    "description": "User confirms feature is done -> COMPLETE",
+    "input": {
+      "user_message": "F002 is done",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "Let me know when you finish F002.",
+      "is_returning": false
+    },
+    "expected": "COMPLETE"
+  },
+  {
+    "id": "case_010",
+    "description": "User pushed changes -> COMPLETE",
+    "input": {
+      "user_message": "just pushed the changes",
+      "active_feature_id": "F001",
+      "last_assistant_msg": "How is the setup going?",
+      "is_returning": false
+    },
+    "expected": "COMPLETE"
+  },
+  {
+    "id": "case_011",
+    "description": "Drift warning + user says they are done -> COMPLETE",
+    "input": {
+      "user_message": "actually I'm done with this",
+      "active_feature_id": "F003",
+      "last_assistant_msg": "Heads up — it looks like you might be drifting from F003. Want to refocus?",
+      "is_returning": false
+    },
+    "expected": "COMPLETE"
+  },
+  {
+    "id": "case_012",
+    "description": "User asks a technical question -> CHAT",
+    "input": {
+      "user_message": "can you explain what F003 involves?",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "You're currently working on F002.",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_013",
+    "description": "Drift warning + user says they will refocus -> CHAT",
+    "input": {
+      "user_message": "okay I'll refocus",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "Heads up — it looks like you might be drifting from F002.",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_014",
+    "description": "Active feature + user describes planning, not committing -> CHAT",
+    "input": {
+      "user_message": "I'm going to install the libraries now",
+      "active_feature_id": "F001",
+      "last_assistant_msg": "F001 is in progress. Let me know how it goes.",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_015",
+    "description": "Suggestion pending + user asks about a different feature instead -> CHAT",
+    "input": {
+      "user_message": "actually what about F003?",
+      "active_feature_id": null,
+      "last_assistant_msg": "I suggest starting with F001 — setting up the project scaffold. Ready to begin?",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_016",
+    "description": "Idiomatic deployment completion phrase -> COMPLETE",
+    "input": {
+      "user_message": "deployed to staging",
+      "active_feature_id": "F003",
+      "last_assistant_msg": "Let me know when F003 is live.",
+      "is_returning": false
+    },
+    "expected": "COMPLETE"
+  },
+  {
+    "id": "case_017",
+    "description": "Idiomatic PR merge phrase -> COMPLETE",
+    "input": {
+      "user_message": "merged the PR",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "How is F002 going?",
+      "is_returning": false
+    },
+    "expected": "COMPLETE"
+  },
+  {
+    "id": "case_018",
+    "description": "Active feature + 'let's start' with no suggestion pending -> START",
+    "input": {
+      "user_message": "let's start",
+      "active_feature_id": "F001",
+      "last_assistant_msg": "F001 is queued up whenever you're ready.",
+      "is_returning": false
+    },
+    "expected": "START"
+  },
+  {
+    "id": "case_019",
+    "description": "Emotional/noise message with active feature -> CHAT",
+    "input": {
+      "user_message": "I'm tired",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "You're making good progress on F002.",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_020",
+    "description": "Active feature + user asks for direction -> SUGGEST",
+    "input": {
+      "user_message": "what else could I work on?",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "F002 is still in progress.",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+  "id": "case_021",
+  "description": "Agent asks if user wants next task after completion + user says yes -> SUGGEST",
+  "input": {
+    "user_message": "yes",
+    "active_feature_id": null,
+    "last_assistant_msg": "Great job finishing F002! Want to move on to the next task?",
+    "is_returning": false
+  },
+  "expected": "SUGGEST"
+}
+]

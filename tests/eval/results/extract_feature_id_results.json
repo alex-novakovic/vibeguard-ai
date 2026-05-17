@@ -1,0 +1,179 @@
+{
+  "total_cases": 19,
+  "correct": 19,
+  "accuracy": 1.0,
+  "total_tokens": 5152,
+  "results": [
+    {
+      "id": "case_001",
+      "description": "Multi-turn negotiation, agent proposes F002, user pushes back, then agrees -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "The user agreed to start F002, as suggested by the AI.",
+      "tokens": 299
+    },
+    {
+      "id": "case_002",
+      "description": "Agent and user go back and forth, user eventually commits to F001 by name -> F001",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "User agreed to start with setting up the development environment.",
+      "tokens": 304
+    },
+    {
+      "id": "case_003",
+      "description": "Active feature in progress, generic affirmative after agent check-in -> continue active F001",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "User confirmed they want to continue the in-progress feature.",
+      "tokens": 333
+    },
+    {
+      "id": "case_004",
+      "description": "User refers to feature by description across several turns, no ID mentioned -> F003",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "The user wants to start building the table to display transactions, which corresponds to the 'Display Transactions' feature.",
+      "tokens": 276
+    },
+    {
+      "id": "case_005",
+      "description": "User initially hesitates, then confirms after agent explains -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "The user is starting the next feature, which is Fetch Transaction Data (F002) as indicated by the AI and the context.",
+      "tokens": 295
+    },
+    {
+      "id": "case_006",
+      "description": "Active feature in progress, user explicitly pivots to a different one -> F003",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "User explicitly requested to start the display feature.",
+      "tokens": 366
+    },
+    {
+      "id": "case_007",
+      "description": "Long back-and-forth about two features, user finally picks one -> F002",
+      "passed": true,
+      "expected": "F004",
+      "got": "F004",
+      "reason": "User chose to start with the wallet feature.",
+      "tokens": 333
+    },
+    {
+      "id": "case_008",
+      "description": "User says 'okay' after multi-turn where agent narrowed down to F003 -> F003",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "The user is acknowledging the previous conversation about the remaining task, which is to display transactions (F003).",
+      "tokens": 261
+    },
+    {
+      "id": "case_009",
+      "description": "Completed features in log, user accepts suggestion from history -> only eligible feature F004",
+      "passed": true,
+      "expected": "F004",
+      "got": "F004",
+      "reason": "User agreed to start the last feature in the backlog.",
+      "tokens": 271
+    },
+    {
+      "id": "case_010",
+      "description": "Active feature, user asks clarifying question then commits to continuing -> F001",
+      "passed": true,
+      "expected": "F001",
+      "got": "F001",
+      "reason": "User is continuing with the in-progress feature.",
+      "tokens": 362
+    },
+    {
+      "id": "case_011",
+      "description": "User types feature ID in lowercase -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "The user explicitly requested to start F002.",
+      "tokens": 202
+    },
+    {
+      "id": "case_012",
+      "description": "User drops the letter, just types the number -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "User requested to start feature 2, which corresponds to Fetch Transaction Data.",
+      "tokens": 200
+    },
+    {
+      "id": "case_013",
+      "description": "User typos the ID as 'F2' instead of 'F002' -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "User wants to start F002 based on the context and user input.",
+      "tokens": 223
+    },
+    {
+      "id": "case_014",
+      "description": "User describes the task with no ID at all -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "The user wants to start the feature that calls the Etherscan API, which corresponds to 'Fetch Transaction Data' (F002).",
+      "tokens": 239
+    },
+    {
+      "id": "case_015",
+      "description": "User references task by order ('the second one') -> F002",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "User selected the second option, which corresponds to feature ID F003.",
+      "tokens": 216
+    },
+    {
+      "id": "case_017",
+      "description": "User agreed to F002 earlier but changes mind in the very last message -> F003",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "User wants to start displaying transactions instead.",
+      "tokens": 267
+    },
+    {
+      "id": "case_018",
+      "description": "User mentions two features but commits to one -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "User wants to start with F002",
+      "tokens": 221
+    },
+    {
+      "id": "case_019",
+      "description": "User accidentally refers to a completed feature, only valid option is F003 -> F003",
+      "passed": true,
+      "expected": "F003",
+      "got": "F003",
+      "reason": "The user wants to redo the setup, and the only feature left is Display Transactions.",
+      "tokens": 185
+    },
+    {
+      "id": "case_020",
+      "description": "User message sounds like a question but history makes intent clear -> F002",
+      "passed": true,
+      "expected": "F002",
+      "got": "F002",
+      "reason": "F003 depends on F002, and the user acknowledges they have no choice but to start with F002.",
+      "tokens": 299
+    }
+  ]
+}

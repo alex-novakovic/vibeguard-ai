@@ -1,0 +1,176 @@
+{
+  "total_cases": 21,
+  "correct": 21,
+  "accuracy": 1.0,
+  "total_tokens": 19456,
+  "results": [
+    {
+      "id": "case_001",
+      "description": "Suggestion pending + affirmative acceptance -> START",
+      "passed": true,
+      "expected": "START",
+      "got": "START",
+      "tokens": 927
+    },
+    {
+      "id": "case_002",
+      "description": "Returning session with active feature + acknowledgment -> START (override rule)",
+      "passed": true,
+      "expected": "START",
+      "got": "START",
+      "tokens": 979
+    },
+    {
+      "id": "case_003",
+      "description": "Active feature + explicit commitment to start now -> START",
+      "passed": true,
+      "expected": "START",
+      "got": "START",
+      "tokens": 926
+    },
+    {
+      "id": "case_004",
+      "description": "Suggestion pending + minimal affirmative -> START",
+      "passed": true,
+      "expected": "START",
+      "got": "START",
+      "tokens": 919
+    },
+    {
+      "id": "case_005",
+      "description": "Explicit next-task request, no active feature -> SUGGEST",
+      "passed": true,
+      "expected": "SUGGEST",
+      "got": "SUGGEST",
+      "tokens": 917
+    },
+    {
+      "id": "case_006",
+      "description": "Returning session, no active feature, acknowledgment -> SUGGEST",
+      "passed": true,
+      "expected": "SUGGEST",
+      "got": "SUGGEST",
+      "tokens": 913
+    },
+    {
+      "id": "case_007",
+      "description": "User explicitly asks for a task -> SUGGEST",
+      "passed": true,
+      "expected": "SUGGEST",
+      "got": "SUGGEST",
+      "tokens": 920
+    },
+    {
+      "id": "case_008",
+      "description": "User rejects suggestion and asks for alternative -> SUGGEST",
+      "passed": true,
+      "expected": "SUGGEST",
+      "got": "SUGGEST",
+      "tokens": 929
+    },
+    {
+      "id": "case_009",
+      "description": "User confirms feature is done -> COMPLETE",
+      "passed": true,
+      "expected": "COMPLETE",
+      "got": "COMPLETE",
+      "tokens": 924
+    },
+    {
+      "id": "case_010",
+      "description": "User pushed changes -> COMPLETE",
+      "passed": true,
+      "expected": "COMPLETE",
+      "got": "COMPLETE",
+      "tokens": 917
+    },
+    {
+      "id": "case_011",
+      "description": "Drift warning + user says they are done -> COMPLETE",
+      "passed": true,
+      "expected": "COMPLETE",
+      "got": "COMPLETE",
+      "tokens": 936
+    },
+    {
+      "id": "case_012",
+      "description": "User asks a technical question -> CHAT",
+      "passed": true,
+      "expected": "CHAT",
+      "got": "CHAT",
+      "tokens": 927
+    },
+    {
+      "id": "case_013",
+      "description": "Drift warning + user says they will refocus -> CHAT",
+      "passed": true,
+      "expected": "CHAT",
+      "got": "CHAT",
+      "tokens": 930
+    },
+    {
+      "id": "case_014",
+      "description": "Active feature + user describes planning, not committing -> CHAT",
+      "passed": true,
+      "expected": "CHAT",
+      "got": "CHAT",
+      "tokens": 931
+    },
+    {
+      "id": "case_015",
+      "description": "Suggestion pending + user asks about a different feature instead -> CHAT",
+      "passed": true,
+      "expected": "CHAT",
+      "got": "CHAT",
+      "tokens": 929
+    },
+    {
+      "id": "case_016",
+      "description": "Idiomatic deployment completion phrase -> COMPLETE",
+      "passed": true,
+      "expected": "COMPLETE",
+      "got": "COMPLETE",
+      "tokens": 921
+    },
+    {
+      "id": "case_017",
+      "description": "Idiomatic PR merge phrase -> COMPLETE",
+      "passed": true,
+      "expected": "COMPLETE",
+      "got": "COMPLETE",
+      "tokens": 918
+    },
+    {
+      "id": "case_018",
+      "description": "Active feature + 'let's start' with no suggestion pending -> START",
+      "passed": true,
+      "expected": "START",
+      "got": "START",
+      "tokens": 924
+    },
+    {
+      "id": "case_019",
+      "description": "Emotional/noise message with active feature -> CHAT",
+      "passed": true,
+      "expected": "CHAT",
+      "got": "CHAT",
+      "tokens": 923
+    },
+    {
+      "id": "case_020",
+      "description": "Active feature + user asks for direction -> SUGGEST",
+      "passed": true,
+      "expected": "SUGGEST",
+      "got": "SUGGEST",
+      "tokens": 924
+    },
+    {
+      "id": "case_021",
+      "description": "Agent asks if user wants next task after completion + user says yes -> SUGGEST",
+      "passed": true,
+      "expected": "SUGGEST",
+      "got": "SUGGEST",
+      "tokens": 922
+    }
+  ]
+}

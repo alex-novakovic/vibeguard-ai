@@ -4,6 +4,7 @@ from agent.config import CONVERSATION_MODEL, client
 from data.state import ProjectState
 from agent.prompts.drift_prompt import DRIFT_CHECK_PROMPT
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,8 +77,8 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
     project_state=project_state,
     active_feature_id=active_id
     )
-    tokens_used += evaluation_tokens
 
+    tokens_used += evaluation_tokens
     # enough context — run the check
     planned = f"{active_feat.get('name')}: {backlog_item.description}"
     actual  = " ".join(drift_context["collected_info"])
@@ -89,6 +90,7 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
             "drift_context": drift_context,
             "drift_note":    None,
             "tokens":        tokens_used
+
         }
 
     from agent.complete import get_alignment_context
@@ -170,6 +172,7 @@ async def evaluate_drift_context_sufficiency(
         logger.error(f"Drift context sufficiency check failed: {e}")
         return (True, 0) 
 
+
 def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -> tuple:
     """
     Applies the drift flow result to state and project_state.
@@ -183,3 +186,4 @@ def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -
     state["drift_note"]    = drift_res.get("drift_note")
 
     return skill_output, tokens, state
+
