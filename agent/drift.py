@@ -2,7 +2,7 @@ import json
 import logging
 from agent.config import CONVERSATION_MODEL, client
 from data.state import ProjectState
-from agent.prompts import DRIFT_CHECK_PROMPT
+from agent.prompts.drift_prompt import DRIFT_CHECK_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
 
     if not active_feat or not backlog_item:
         return {
-            "status":      "DONE",
+            "status":      "IDLE",
             "skill_output": "CHAT: No active feature to check drift against.",
             "drift_note":  None,
             "tokens":      0
@@ -69,25 +69,26 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
     drift_context = state.get("drift_context", {"collected_info": [], "attempts": 0})
     drift_context["collected_info"].append(user_msg)
     drift_context["attempts"] += 1
+    tokens_used = 0
 
-    is_sufficient, sufficiency_tokens = await evaluate_drift_context_sufficiency(
+    is_sufficient, evaluation_tokens = await evaluate_drift_context_sufficiency(
     gathered_text=" ".join(drift_context["collected_info"]),
     project_state=project_state,
     active_feature_id=active_id
     )
-    drift_context["tokens"] = drift_context.get("tokens", 0) + sufficiency_tokens
+    tokens_used += evaluation_tokens
 
     # enough context — run the check
     planned = f"{active_feat.get('name')}: {backlog_item.description}"
     actual  = " ".join(drift_context["collected_info"])
 
-    if not is_sufficient and drift_context["attempts"] < 4:
+    if not is_sufficient and drift_context["attempts"] < 3:
         return {
             "status":        "COLLECTING",
             "skill_output":  "DRIFT_INTERVIEW: The developer hasn't been specific enough. Ask them exactly what they are working on right now — what file, what function, what problem are they solving at this moment?",
             "drift_context": drift_context,
             "drift_note":    None,
-            "tokens":        sufficiency_tokens
+            "tokens":        tokens_used
         }
 
     from agent.complete import get_alignment_context
@@ -96,6 +97,8 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
         actual_work=actual,
         vision_context=get_alignment_context(project_state.vision_doc)
     )
+
+    tokens_used += res["tokens"]
 
     if res["is_drifted"]:
         if res["severity"] == "severe":
@@ -110,7 +113,7 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
         "skill_output":  skill_output,
         "drift_context": {"collected_info": [], "attempts": 0},  # reset
         "drift_note":    res["feedback"] if res["is_drifted"] else None,
-        "tokens":        res["tokens"]
+        "tokens":        tokens_used
     }
 
 async def evaluate_drift_context_sufficiency(
@@ -129,27 +132,20 @@ async def evaluate_drift_context_sufficiency(
             task_context = f"Feature: {target_feature.name}\nDescription: {target_feature.description}"
 
     prompt = f"""
-    You are a technical manager checking if a developer has described
-    their current activity clearly enough to assess whether they are
-    on track or drifting from their planned task.
+    You are checking if a developer has provided enough context about
+    their current work to assess whether they are on track or drifting.
 
     PLANNED TASK:
     {task_context}
 
-    WHAT THE DEVELOPER SAID THEY ARE DOING RIGHT NOW:
+    WHAT THE DEVELOPER PROVIDED:
     "{gathered_text}"
 
-    TASK:
-    Has the developer described their current activity with enough
-    specificity to compare it against the planned task?
-    We need to know WHAT they are working on right now — not what
-    they finished, not what they plan to do, but what they are
-    actively doing at this moment.
-
-    Good enough: mentions specific files, components, problems they
-    are solving, or concrete technical actions.
-    Not enough: vague statements like "just coding", "working on it",
-    "doing some stuff", or no mention of current activity at all.
+    RULES:
+    - If the developer shared actual code, a script, or a code snippet → YES immediately, no further analysis needed
+    - If the developer mentioned specific function names, file names, API calls, or library names → YES
+    - If the developer described a concrete technical action they are performing → YES
+    - Only NO if the response is purely vague: "just coding", "working on it", "doing stuff", no technical detail at all
 
     Respond with EXACTLY 'YES' or 'NO'. No punctuation, no explanation.
     """
@@ -174,20 +170,16 @@ async def evaluate_drift_context_sufficiency(
         logger.error(f"Drift context sufficiency check failed: {e}")
         return (True, 0) 
 
-def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState, skill_tokens: int) -> tuple:
+def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -> tuple:
     """
     Applies the drift flow result to state and project_state.
     Returns: (skill_output, skill_tokens, state, tokens_accounted)
     """
     skill_output = drift_res["skill_output"]
     tokens       = drift_res.get("tokens", 0)
-    skill_tokens += tokens
 
     state["drift_status"]  = drift_res["status"]
     state["drift_context"] = drift_res.get("drift_context", state.get("drift_context", {"collected_info": [], "attempts": 0}))
     state["drift_note"]    = drift_res.get("drift_note")
 
-    if drift_res.get("drift_note"):
-        project_state.drift_note = drift_res["drift_note"]
-
-    return skill_output, skill_tokens, state, tokens > 0
+    return skill_output, tokens, state

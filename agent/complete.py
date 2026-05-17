@@ -197,12 +197,12 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
         state["alignment_note"] = completion_res["alignment_note"]
 
     next_status = completion_res["next_status"]
-    tokens_accounted = False  # tells guardian_node whether to skip its increment
+    tokens_accounted = False
 
     # Path 2: aligned — mark complete
     if next_status == "IDLE" and completion_res.get("is_aligned") is True:
-        project_state.current_cycle_tokens += skill_tokens  # accumulate this turn first
-
+        project_state.current_cycle_tokens += skill_tokens
+        
         state["logger"].log_llm_call(
         function_name="feature_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
@@ -218,20 +218,15 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
 
     # Path 3: not aligned — reopen the feature so it stays in_progress
     elif next_status == "IDLE" and completion_res.get("is_aligned") is False:
-        project_state.current_cycle_tokens += skill_tokens
+        project_state.previous_feature_id = project_state.active_feature_id
+        # active_feature_id stays set — feature remains in_progress for adjustment
 
-        state["logger"].log_llm_call (
+        state["logger"].log_llm_call(
         function_name="feature_not_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],
         tokens=project_state.current_cycle_tokens,
         user_id=state["user_id"],
-       )
-        
-        project_state.previous_feature_id = project_state.active_feature_id
-        # active_feature_id stays set — feature remains in_progress for adjustment
-        tokens_accounted = True
-        # do NOT reset current_cycle_tokens — feature stays in_progress
-
+    )
 
     return skill_output, skill_tokens, state, tokens_accounted
