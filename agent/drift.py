@@ -4,7 +4,6 @@ from agent.config import CONVERSATION_MODEL, client
 from data.state import ProjectState
 from agent.prompts.drift_prompt import DRIFT_CHECK_PROMPT
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -87,7 +86,6 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
             "drift_context": drift_context,
             "drift_note":    None,
             "tokens":        tokens_used
-
         }
     
     # enough context — run the check
@@ -187,4 +185,5 @@ def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -
     state["drift_note"]    = drift_res.get("drift_note")
 
     return skill_output, tokens, state
+
 
