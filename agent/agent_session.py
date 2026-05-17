@@ -20,9 +20,12 @@ class AgentState(TypedDict):
     logger: Logger | None
     just_completed_scoping: bool
     is_returning: bool
-    alignment_note: str | None
     completion_status: Literal["IDLE", "COLLECTING"]  
     completion_context: Dict[str, any]  # Stores collected data temporarily
+    alignment_note: str | None
+    drift_status: Literal["IDLE", "COLLECTING"] # "IDLE" | "COLLECTING"
+    drift_context: Dict[str, any]      # {"collected_info": [], "attempts": 0}
+    drift_note: str | None   # populated after verdict
 
 class AgentSession:
     """
@@ -36,12 +39,14 @@ class AgentSession:
         self.project_state: ProjectState = ProjectState()
         self.just_completed_scoping: bool = False
         self.messages: List[Dict] = []  # This will hold the conversation history
-        self.alignment_note: str | None = None
-        self.drift_note: str | None = None
         self.logger: Logger = Logger()
         self.is_returning: bool = False
         self.completion_status: str = "IDLE"
         self.completion_context: dict = {"collected_info": [], "attempts": 0}
+        self.alignment_note: str | None = None
+        self.drift_status: str = "IDLE"
+        self.drift_context: dict = {"collected_info": [], "attempts": 0}
+        self.drift_note: str | None = None
 
 
 
