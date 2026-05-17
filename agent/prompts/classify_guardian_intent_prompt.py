@@ -3,6 +3,7 @@ def build_guardian_intent_prompt(active_feature_id: str | None, last_assistant_m
     active_context = f"Active feature in progress: {active_feature_id}" if active_feature_id else "No active feature."
     returning_context = "User is returning to an existing session." if is_returning else "Normal session turn."
 
+
     return f"""
     You are the Intent Router for VibeGuard. Categorize the user's message based on the CURRENT CONTEXT.
 
@@ -42,6 +43,7 @@ def build_guardian_intent_prompt(active_feature_id: str | None, last_assistant_m
     - "Shall we continue?" → False
     - "Ready for the next step?" → False
 
+
     Then classify the user's reply using these rules:
 
     CATEGORIES & STRICT RULES:
@@ -55,7 +57,6 @@ def build_guardian_intent_prompt(active_feature_id: str | None, last_assistant_m
     - Detailed work reports describing what was implemented, built, or delivered — even if they don't use the word "done"
     4. CHAT: Everything else — questions, acknowledgments when nothing was proposed, technical help.
 
-
     EXAMPLES:
     - Last msg proposes F001 + user says "okay" -> START
     - Last msg proposes F001 + user says "actually what about F003?" -> CHAT
@@ -63,6 +64,7 @@ def build_guardian_intent_prompt(active_feature_id: str | None, last_assistant_m
     - Last msg asks if user wants a next task (no specific feature proposed) + user says "yes" -> SUGGEST
     - Last msg completes a feature and asks "are you ready to move on?" (no specific feature named) + user says "ok" -> SUGGEST
     - Last msg completes a feature and asks "want to start F003?" (specific feature named) + user says "ok" -> START
+
 
     - Last msg answers a question + user says "sounds good" -> CHAT
     - Last msg answers a question + user says "thanks" -> CHAT
