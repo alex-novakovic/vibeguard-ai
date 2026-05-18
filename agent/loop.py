@@ -9,6 +9,7 @@ from agent.agent_utils import classify_guardian_intent, generate_guardian_respon
 from agent.config import logger
 from agent.start_feature import extract_feature_id_from_msg, start_feature
 from agent.complete import handle_completion_flow, apply_completion_res
+from agent.drift import handle_drift_flow, apply_drift_res
 
 
 
@@ -66,6 +67,7 @@ async def guardian_node(state: AgentState) -> AgentState:
     tokens_accounted = False 
 
     current_completion_status = state.get("completion_status", "IDLE")
+    current_drift_status      = state.get("drift_status", "IDLE")
     
     # 1. ADD USER MESSAGE TO HISTORY IMMEDIATELY
     if "messages" not in state or state["messages"] is None:
@@ -84,6 +86,9 @@ async def guardian_node(state: AgentState) -> AgentState:
     elif current_completion_status == "COLLECTING":                        
         completion_res = await handle_completion_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
+    elif current_drift_status == "COLLECTING":                       
+        drift_res = await handle_drift_flow(state, user_msg, project_state)
+        skill_output, skill_tokens, state = apply_drift_res(drift_res, state, project_state)
     else:
         res = await classify_guardian_intent(user_msg, active_feature_id=active_feature_id, last_assistant_msg=last_assistant_msg,is_returning=state.get("is_returning", False))
         intent = res["prediction"]
@@ -111,7 +116,6 @@ async def guardian_node(state: AgentState) -> AgentState:
                 # First message claiming completion — enter the flow
                 completion_res = await handle_completion_flow(state, user_msg, project_state)
                 skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
-
             case "CHAT":
                 if active_feature_id:
                     feature_name = project_state.feature_log["features"][active_feature_id]["name"]
@@ -214,6 +218,9 @@ class Agent(AgentFunctions):
         # Setup baseline state values or fetch ongoing sub-flow parameter configurations
         initial_completion_status = getattr(session, "completion_status", "IDLE")
         initial_completion_context = getattr(session, "completion_context", {"collected_info": [], "attempts": 0})
+        initial_drift_status = getattr(session, "drift_status", "IDLE")
+        initial_drift_context = getattr(session, "drift_context", {"collected_info": [], "attempts": 0})
+
         # build input state for this turn
         input_state: AgentState = {
             "user_id": session.user_id,
@@ -226,10 +233,13 @@ class Agent(AgentFunctions):
             "just_completed_scoping": session.just_completed_scoping,
             "logger":logger,
             "is_returning": session.is_returning,
-            "alignment_note":session.alignment_note,
             "completion_status": initial_completion_status,
-            "completion_context": initial_completion_context
-        }
+            "completion_context": initial_completion_context,
+            "alignment_note":session.alignment_note,
+            "drift_status" : initial_drift_status,
+            "drift_context" : initial_drift_context,
+            "drift_note":session.drift_note
+          }
 
         # run the graph
         result = await agent_graph.ainvoke(input_state)
@@ -246,5 +256,9 @@ class Agent(AgentFunctions):
         session.completion_status = result["completion_status"]
         session.completion_context = result["completion_context"]
         session.alignment_note = result["alignment_note"]
+
+        session.drift_status  = result["drift_status"]
+        session.drift_context = result["drift_context"]
+        session.drift_note    = result["drift_note"]
 
         return result["response"], session
