@@ -30,7 +30,7 @@ async def scoping_node(state: AgentState) -> AgentState:
     response = await scoping.run_conversation_turn(state["user_message"])
 
     '''
-    log_llm_call(
+    await state["logger"].log_llm_call(
         function_name="run_conversation_turn",
         prompt=state["user_message"],
         response=response,
@@ -45,7 +45,8 @@ async def scoping_node(state: AgentState) -> AgentState:
 async def finish_scoping_node(state: AgentState) -> AgentState:
     """Called once when scoping is complete — parses vision doc."""
     scoping = state["scoping"]
-    vision_doc = await scoping.scoping_session()
+    vision_doc = await scoping.scoping_session(user_id=state["user_id"])
+
 
     project_state = ProjectState(
         vision_doc=vision_doc,
@@ -53,10 +54,10 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
     )
     project_state.current_cycle_tokens = scoping.total_tokens
 
-    state["logger"].log_llm_call(
+    await state["logger"].log_llm_call(
         function_name="scoping_session",
         prompt="Full scoping conversation",
-        response=json.dumps(vision_doc.model_dump()),
+        response=vision_doc.model_dump_json(),
         tokens=scoping.total_tokens,
         user_id=state["user_id"],
     )
@@ -75,7 +76,9 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 async def guardian_node(state: AgentState) -> AgentState:
     """Handles messages during guardian phase."""
     # TODO: wire in suggest_next_task() and monitor_for_drift()
-    project_name = state["project_state"].vision_doc.get("projectName", "your project")
+    project_name = "your project" #newww
+    if state["project_state"] and state["project_state"].vision_doc:
+        project_name = getattr(state["project_state"].vision_doc, "projectName", "your project")
     response = f"[Guardian mode active] Working on: {project_name}. Guardian features coming soon."
     return {**state, "response": response}
 
@@ -146,7 +149,7 @@ class Agent(AgentFunctions):
         Now runs the LangGraph instead of if/elif routing.
         """
         if not user_message or not user_message.strip():
-            return "Please type a message to get started."
+            return "Please type a message to get started.", session #added session
 
         # build input state for this turn
         input_state: AgentState = {

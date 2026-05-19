@@ -9,6 +9,7 @@ from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
 
 # Importing your specific exception classes
 from utils.exceptions import (
+    DatabaseError,
     RateLimitReached, 
     ModelTimeout, 
     ParsingFailed, 
@@ -105,7 +106,7 @@ class ScopingSession:
                         raise RateLimitReached("Rate limit hit after all retries.") from e
                     raise ModelTimeout("Model timed out after all retries.") from e
 
-    async def scoping_session(self) -> dict:
+    async def scoping_session(self, user_id: str) -> VisionDoc:
         transcript = self.get_transcript()
         filled_prompt = PARSING_PROMPT.replace("{transcript}", transcript)
 
@@ -140,9 +141,15 @@ class ScopingSession:
 
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
+                vision_doc["user_id"] = user_id
 
-                return VisionDoc(**vision_doc)
-
+                vision_doc = VisionDoc(**vision_doc)
+                try:
+                    await vision_doc.insert()
+                except Exception as e:
+                    raise DatabaseError(f"Failed to save vision doc to database: {e}") from e
+                return vision_doc
+                
             except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:
                     await self._handle_backoff(attempt, e)

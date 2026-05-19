@@ -17,6 +17,16 @@ class BacklogItem(BaseModel):
     scopeFlag: bool
     scopeFlagReason: Optional[str] = None
 
+class CycleItem(BaseModel):
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    alignment_note: Optional[str] = None
+    tokens_used: Optional[int] = None
+
+class DriftItem(BaseModel):
+    drift_time: datetime
+    drift_note: Optional[str] = None
+
 # --- BEANIE DOKUMENTI (MongoDB Kolekcije) ---
 
 class VisionDoc(Document):
@@ -45,8 +55,8 @@ class FeatureLogItem(Document):
     feature_id: str = Field(description="ID iz backloga, npr. F001")
     name: str
     status: Literal["to_do", "in_progress", "complete"]
-    cycles: List[dict]  # start_time, end_time, alignment_note, tokens_used
-    drift_events: List[dict]
+    cycles: List[CycleItem]  # start_time, end_time, alignment_note, tokens_used
+    drift_events: List[DriftItem]  # drift_time, drift_note
 
     class Settings:
         name = "feature_logs"
@@ -68,3 +78,14 @@ class SessionEntry(Document):
     class Settings:
         name = "session_entries"
         indexes = ["user_id", "workSessionId"]
+
+class LLMCallLog(Document):
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    function_name: str
+    prompt: str
+    response: str
+    tokens: int
+    user_id: str
+
+    class Settings:
+        name = "llm_calls"  # Ovo će biti naziv kolekcije u MongoDB-u

@@ -1,10 +1,11 @@
 from datetime import datetime
 import os
 from interfaces import LoggerBackend
+from data.schemas import LLMCallLog
 
 class Logger(LoggerBackend):
 
-    def log_llm_call(
+    async def log_llm_call(
         self,
         function_name: str,
         prompt: str,
@@ -25,12 +26,14 @@ class Logger(LoggerBackend):
         if not user_id:
             raise ValueError("user_id cannot be empty")
         
-        os.makedirs("./data/logs", exist_ok=True)
-
-        with open("./data/logs/llm_calls.log", "a") as f:
-            f.write(f"[{datetime.now()}] FUNCTION: {function_name}\n")
-            f.write(f"PROMPT: {prompt}\n")
-            f.write(f"RESPONSE: {response}\n")
-            f.write(f"TOKENS: {tokens}\n")
-            f.write(f"USER_ID: {user_id}\n")
-            f.write("---\n")
+        # 2. Kreiramo instancu našeg modela
+        log_entry = LLMCallLog(
+            function_name=function_name,
+            prompt=prompt,
+            response=response,
+            tokens=tokens,
+            user_id=user_id
+        )
+        
+        # 3. Asinhrono ga "bacamo" u MongoDB kao poseban JSON dokument
+        await log_entry.insert()

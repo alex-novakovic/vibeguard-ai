@@ -7,12 +7,12 @@ from interfaces import StorageBackend, AgentFunctions
 from data.storage import Storage
 from data.db import init_db
 from utils.exceptions import (
+    DatabaseError,
     VibeGuardError,
     RateLimitReached,
     ModelTimeout,
     EmptyResponse,
     ParsingFailed,
-    FileSystemError,
 )
 
 storage: StorageBackend = Storage()
@@ -23,20 +23,28 @@ _session_states: dict = {}
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
 
-def on_startup(user_id):
+async def on_startup(user_id): 
     if not user_id:
-        user_id = str(uuid.uuid4())  # first visit — generate once, stored in browser
+        user_id = str(uuid.uuid4())
+
+    try:
+     await init_db()
+    except DatabaseError as e:
+        msg = f"⚠️ Database connection failed: {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
+    
+     # first visit — generate once, stored in browser
     try:
         session = AgentSession()
         session.user_id = user_id
-        status, state = storage.load_or_create_project(user_id)
-        state.session_log = storage.start_session(state.session_log)
+        status, state = await storage.load_or_create_project(user_id)
+        new_session_entry = await storage.start_session(user_id) #ovo je promenjeno jer nije vise ceo session_log zajedno
+        state.session_log.append(new_session_entry)
+
     except ParsingFailed as e:
         msg = f"⚠️ {e}"
         return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
-    except FileSystemError as e:
-        msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
+    
     except VibeGuardError as e:
         msg = f"⚠️ {e}"
         return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
@@ -63,23 +71,41 @@ def on_startup(user_id):
         session,
     )
 
-def save_logs(proj_state, request: gr.Request):
-    if proj_state is None:
-        return gr.update()
-    _session_states[request.session_hash] = proj_state
-    try:
-        storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
-    except FileSystemError as e:
-        return gr.update(value=f"⚠️ Auto-save failed: {e}")
-    return gr.update()
 
-def on_exit(request: gr.Request):
-    proj_state = _session_states.pop(request.session_hash, None)
-    if proj_state is None:
+async def on_exit(request: gr.Request):
+    entry = _session_states.pop(request.session_hash, None)
+    if entry is None:
         return
+    
+    session_id = entry["session_id"]
+    session = entry["agent_session"]
+    
+    if session is None or session.project_state is None:
+        return
+        
     try:
-        storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
-    except FileSystemError:
+        proj_state = session.project_state
+        user_id = session.user_id  # Uzimamo user_id koji imamo sačuvan u session objektu
+        
+        # 1. Pozivamo novu end_session sa tačnim argumentima
+        updated_session_entry = await storage.end_session(
+            user_id=user_id,
+            session_id=session_id,
+            total_tokens=proj_state.current_cycle_tokens,
+        )
+        
+        # 2. Usklađujemo listu u memoriji (session_log)
+        # Prolazimo kroz listu i zamenjujemo staru sesiju sa ovom ažuriranom iz baze
+        if proj_state.session_log:
+            for i, old_entry in enumerate(proj_state.session_log):
+                if old_entry.workSessionId == session_id:
+                    proj_state.session_log[i] = updated_session_entry
+                    break
+        
+        # 3. Istresamo sve ostale izmene (npr. ako je bilo izmena u vision_doc ili feature_log)
+        await storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
+        
+    except VibeGuardError:
         pass
 
 
@@ -111,10 +137,13 @@ async def on_send(message, history, session, status, proj_state, initialized, re
 
     if session.phase == PHASE_GUARDIAN and session.project_state and not initialized:
         vision_doc = session.project_state.vision_doc
-        log_data = storage.initialize_feature_log(vision_doc)
+        log_data = await storage.initialize_feature_log(vision_doc)
         session.project_state.feature_log = log_data
-        _session_states[request.session_hash] = session.project_state
+        _session_states[request.session_hash]["agent_session"] = session.project_state
         return history, history, "", vision_doc.model_dump(), log_data, True, "existing", session.project_state
+
+    if session.project_state: #NEW
+        await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
 
     return history, history, "", gr.update(), gr.update(), initialized, status, proj_state
 
@@ -162,19 +191,10 @@ with gr.Blocks(title="VibeGuard AI") as demo:
         inputs=[user_id_browser],
         outputs=[user_id_browser, chatbot, vision_display, log_display, status_state, proj_state_state, session_state],
     )
-    gr.Timer(300).tick(save_logs, inputs=[proj_state_state], outputs=[chatbot])
     demo.unload(on_exit)
 
-if __name__ == "__main__":
-    demo.launch(theme=gr.themes.Soft(), share=False)
 ###NEWWWW
 async def main():
-
-    try:
-        await init_db()
-    except Exception as e:
-        print(f"Database initialization failed: {e}")
-        return
 
     # 2. Start the Gradio app
     demo.launch(theme=gr.themes.Soft(), share=False)
