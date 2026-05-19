@@ -2,11 +2,15 @@ import json
 import asyncio
 from agent.agent_utils import classify_guardian_intent
 import sys
-
 import os
 
 
 sys.stdout.reconfigure(encoding="utf-8")
+
+
+
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 
 def load_cases(path: str) -> list:

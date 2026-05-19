@@ -62,7 +62,6 @@
       "active_feature_id": null,
       "last_assistant_msg": "Welcome back! Your project is loaded.",
       "is_returning": true
-
     },
     "expected": "SUGGEST"
   },

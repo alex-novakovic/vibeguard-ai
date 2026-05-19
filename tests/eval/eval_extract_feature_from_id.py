@@ -7,7 +7,6 @@ import os
 sys.stdout.reconfigure(encoding="utf-8")
 
 
-
 def load_cases(path: str) -> list:
     with open(path) as f:
         return json.load(f)
