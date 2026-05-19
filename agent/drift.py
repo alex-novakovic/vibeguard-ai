@@ -79,12 +79,6 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
 
     tokens_used += evaluation_tokens
 
-
-    tokens_used += evaluation_tokens
-    # enough context — run the check
-    planned = f"{active_feat.get('name')}: {backlog_item.description}"
-    actual  = " ".join(drift_context["collected_info"])
-
     if not is_sufficient and drift_context["attempts"] < 3:
         return {
             "status":        "COLLECTING",
@@ -93,6 +87,10 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
             "drift_note":    None,
             "tokens":        tokens_used
         }
+    
+    # enough context — run the check
+    planned = f"{active_feat.get('name')}: {backlog_item.description}"
+    actual  = " ".join(drift_context["collected_info"])
 
     from agent.complete import get_alignment_context
     res = await check_drift(

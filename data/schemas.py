@@ -6,7 +6,7 @@ class BacklogItem(BaseModel):
     name: str
     description: str
     priority: Literal["critical", "high", "medium", "low"]
-    status: Literal["to_do"]
+    status: Literal["to_do", "in_progress", "complete"]
     estimatedMinutes: int
     dependencies: List[str]
     confidence: Literal["high", "low"]

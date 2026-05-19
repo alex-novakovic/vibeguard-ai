@@ -1,6 +1,9 @@
 import json
 import asyncio
 from agent.start_feature import extract_feature_id_from_msg
+import sys
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 
 def load_cases(path: str) -> list:

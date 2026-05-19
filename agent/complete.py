@@ -85,7 +85,7 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
             "context": context,
             "tokens": tokens_used,
             "is_aligned": None,
-            "alignment_note": None,
+            "alignment_note": None
         }
 
     features = project_state.feature_log.get("features", {})
@@ -99,7 +99,7 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
             "context": {"collected_info": [], "attempts": 0},
             "tokens": tokens_used,
             "is_aligned": None,
-            "alignment_note": None,
+            "alignment_note": None
         }
 
     alignment_res = await vision_alignment_check(
@@ -109,17 +109,31 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
     )
     tokens_used += alignment_res["tokens"]
 
+    # compute remaining after this feature completes
+    remaining = [
+    item for item in project_state.vision_doc.backlog
+    if item.status == "to_do" and item.id != active_feature_id
+    ]  
+
     return {
-        "skill_output": (
-            f"ALIGNMENT_SUCCESS: {alignment_res['feedback']}. Feature is now marked COMPLETE."
-            if alignment_res["is_aligned"]
-            else f"ALIGNMENT_FAILED: {alignment_res['feedback']}. Do NOT mark as complete. Explain the drift."
-        ),
+        "skill_output": ((
+        f"ALIGNMENT_SUCCESS — no tasks remaining, this is the final feature. "
+        f"Congratulate the user on completing the full MVP. Do NOT ask about next tasks. {alignment_res['feedback']}."
+        if not remaining
+        else f"ALIGNMENT_SUCCESS — {len(remaining)} task(s) remaining. {alignment_res['feedback']}. Feature is now marked COMPLETE."
+    )
+    if alignment_res["is_aligned"]
+    else (
+        f"ALIGNMENT_FAILED — {len(remaining)} task(s) remaining. {alignment_res['feedback']}. Do NOT mark as complete. Explain the drift."
+        if remaining
+        else f"ALIGNMENT_FAILED — this is the final feature but it needs fixes. {alignment_res['feedback']}. Do NOT mark as complete. Explain the drift."
+    )
+    ),
         "next_status": "IDLE",
         "context": {"collected_info": [], "attempts": 0},
         "tokens": tokens_used,
         "is_aligned": alignment_res["is_aligned"],
-        "alignment_note": alignment_res["feedback"],
+        "alignment_note": alignment_res["feedback"]
     }
 
 
@@ -143,12 +157,11 @@ async def evaluate_context_sufficiency(
     # 1. Look up the task description from the backlog if an ID is provided
     task_context = "No specific feature context provided."
     if active_feature_id and hasattr(project_state, "vision_doc") and hasattr(project_state.vision_doc, "backlog"):
-        # Assuming backlog is a list of features/tasks
         target_feature = next((f for f in project_state.vision_doc.backlog if getattr(f, "id", None) == active_feature_id), None)
         if target_feature:
-            f_title = getattr(target_feature, "title", "Unknown")
+            f_name = getattr(target_feature, "name", "Unknown")
             f_desc = getattr(target_feature, "description", "No description provided.")
-            task_context = f"Feature: {f_title}\nDescription/Requirements: {f_desc}"
+            task_context = f"Feature: {f_name}\nDescription/Requirements: {f_desc}"
 
     # 2. Inject this task target into the prompt
     prompt = f"""
@@ -202,13 +215,13 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
     # Path 2: aligned — mark complete
     if next_status == "IDLE" and completion_res.get("is_aligned") is True:
         project_state.current_cycle_tokens += skill_tokens
-        
+
         state["logger"].log_llm_call(
         function_name="feature_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],
         tokens=project_state.current_cycle_tokens,
-        user_id=state["user_id"],
+        user_id=state["user_id"]
        )
         
         project_state.previous_feature_id = project_state.active_feature_id
@@ -226,7 +239,7 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],
         tokens=project_state.current_cycle_tokens,
-        user_id=state["user_id"],
+        user_id=state["user_id"]
     )
 
     return skill_output, skill_tokens, state, tokens_accounted

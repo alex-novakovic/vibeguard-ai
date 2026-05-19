@@ -61,7 +61,7 @@
       "user_message": "okay",
       "active_feature_id": null,
       "last_assistant_msg": "Welcome back! Your project is loaded.",
-      "is_returning": false
+      "is_returning": true
     },
     "expected": "SUGGEST"
   },
@@ -229,5 +229,93 @@
     "is_returning": false
   },
   "expected": "SUGGEST"
-}
+}, 
+{
+  "id": "case_022",
+  "description": "User asks what to work on but active feature already exists -> should resume, not suggest new",
+  "input": {
+    "user_message": "what should I work on?",
+    "active_feature_id": "F002",
+    "last_assistant_msg": "Welcome back! Your project is loaded. Start a feature below.",
+    "is_returning": false
+  },
+  "expected": "CHAT"
+},
+  {
+    "id": "case_023",
+    "description": "Active feature + user explicitly wants to switch to something else -> SUGGEST",
+    "input": {
+      "user_message": "what else could I work on?",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "You are currently working on F002 - Fetch Transaction Data.",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_024",
+    "description": "Active feature + user is lost and needs help -> CHAT not SUGGEST",
+    "input": {
+      "user_message": "I'm lost, what do I do?",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "You are currently working on F002 - Fetch Transaction Data.",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_025",
+    "description": "Active feature + user asks give me a task -> CHAT not SUGGEST",
+    "input": {
+      "user_message": "give me a task",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "You are currently working on F002 - Fetch Transaction Data.",
+      "is_returning": false
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_026",
+    "description": "No active feature + user asks give me a task -> SUGGEST",
+    "input": {
+      "user_message": "give me a task",
+      "active_feature_id": null,
+      "last_assistant_msg": "F001 is complete, great work!",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_027",
+    "description": "Active feature + user says can I switch tasks -> SUGGEST",
+    "input": {
+      "user_message": "can I switch to something else?",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "You are currently working on F002 - Fetch Transaction Data.",
+      "is_returning": false
+    },
+    "expected": "SUGGEST"
+  },
+  {
+    "id": "case_028",
+    "description": "Returning session, active feature exists, user asks what to work on -> CHAT",
+    "input": {
+      "user_message": "what should I work on?",
+      "active_feature_id": "F002",
+      "last_assistant_msg": "Welcome back! Your project is loaded. Start a feature below.",
+      "is_returning": true
+    },
+    "expected": "CHAT"
+  },
+  {
+    "id": "case_029",
+    "description": "Returning session, no active feature, user says okay -> SUGGEST",
+    "input": {
+      "user_message": "okay",
+      "active_feature_id": null,
+      "last_assistant_msg": "Welcome back! Your project is loaded. Start a feature below.",
+      "is_returning": true
+    },
+    "expected": "SUGGEST"
+  }
 ]

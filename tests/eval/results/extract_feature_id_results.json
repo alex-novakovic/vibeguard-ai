@@ -2,7 +2,7 @@
   "total_cases": 19,
   "correct": 19,
   "accuracy": 1.0,
-  "total_tokens": 5152,
+  "total_tokens": 5160,
   "results": [
     {
       "id": "case_001",
@@ -28,8 +28,8 @@
       "passed": true,
       "expected": "F001",
       "got": "F001",
-      "reason": "User confirmed they want to continue the in-progress feature.",
-      "tokens": 333
+      "reason": "User confirmed they are unblocked and the current feature is in progress.",
+      "tokens": 335
     },
     {
       "id": "case_004",
@@ -55,8 +55,8 @@
       "passed": true,
       "expected": "F003",
       "got": "F003",
-      "reason": "User explicitly requested to start the display feature.",
-      "tokens": 366
+      "reason": "User explicitly requested to jump to the display feature.",
+      "tokens": 367
     },
     {
       "id": "case_007",
@@ -64,8 +64,8 @@
       "passed": true,
       "expected": "F004",
       "got": "F004",
-      "reason": "User chose to start with the wallet feature.",
-      "tokens": 333
+      "reason": "User chose to start with the wallet connect feature.",
+      "tokens": 334
     },
     {
       "id": "case_008",
@@ -91,8 +91,8 @@
       "passed": true,
       "expected": "F001",
       "got": "F001",
-      "reason": "User is continuing with the in-progress feature.",
-      "tokens": 362
+      "reason": "User is continuing the in-progress feature.",
+      "tokens": 361
     },
     {
       "id": "case_011",
@@ -140,7 +140,7 @@
       "tokens": 216
     },
     {
-      "id": "case_017",
+      "id": "case_016",
       "description": "User agreed to F002 earlier but changes mind in the very last message -> F003",
       "passed": true,
       "expected": "F003",
@@ -149,16 +149,16 @@
       "tokens": 267
     },
     {
-      "id": "case_018",
+      "id": "case_017",
       "description": "User mentions two features but commits to one -> F002",
       "passed": true,
       "expected": "F002",
       "got": "F002",
-      "reason": "User wants to start with F002",
-      "tokens": 221
+      "reason": "User wants to start with F002 as per the context.",
+      "tokens": 226
     },
     {
-      "id": "case_019",
+      "id": "case_018",
       "description": "User accidentally refers to a completed feature, only valid option is F003 -> F003",
       "passed": true,
       "expected": "F003",
@@ -167,7 +167,7 @@
       "tokens": 185
     },
     {
-      "id": "case_020",
+      "id": "case_019",
       "description": "User message sounds like a question but history makes intent clear -> F002",
       "passed": true,
       "expected": "F002",
