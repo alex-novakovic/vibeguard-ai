@@ -3,7 +3,9 @@ import asyncio
 from agent.agent_utils import classify_guardian_intent
 import sys
 
+
 sys.stdout.reconfigure(encoding="utf-8")
+
 
 
 
@@ -55,7 +57,6 @@ async def run_eval():
         status = "✅" if passed else "❌"
         print(f"{status} {case['id']}: expected {case['expected']}, got {result.get('prediction')}")
         print(f"   {case['description']}")
-
         print()
 
     accuracy = correct / len(cases) if cases else 0
