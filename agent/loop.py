@@ -139,7 +139,7 @@ async def guardian_node(state: AgentState) -> AgentState:
     skill_tokens += llm_res.get("tokens", 0)
     # add the tokens to the projectstate for overall accounting
     if not tokens_accounted:
-        state.feature_tokens += skill_tokens
+        state["feature_tokens"] += skill_tokens
     
     state["messages"].append({"role": "assistant", "content": final_response})
 
@@ -260,5 +260,6 @@ class Agent(AgentFunctions):
         session.drift_status  = result["drift_status"]
         session.drift_context = result["drift_context"]
         session.drift_note    = result["drift_note"]
+        session.feature_tokens = result["feature_tokens"]
 
         return result["response"], session
