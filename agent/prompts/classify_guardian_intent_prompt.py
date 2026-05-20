@@ -46,7 +46,7 @@ def build_guardian_intent_prompt(active_feature_id: str | None, last_assistant_m
 
     CATEGORIES & STRICT RULES:
     1. START: Use this when the user is committing to begin a feature they haven't started yet. This includes:
-    - suggestion_pending is True AND user accepts (e.g., "okay", "let's go", "do it", "sure")
+    - suggestion_pending is True AND the user provides any form of contextual affirmation, validation, or alignment signaling they accept the suggested trajectory -> START.
     - Active feature exists AND user says they are about to start ("I'll start now", "beginning now", "on it")
     - Do NOT use START if the user is describing work already in progress, asking questions, or reporting plans — that is CHAT.
     - Do NOT use START if the assistant is asking whether the user wants a task without proposing a specific one — an affirmative reply there is SUGGEST.

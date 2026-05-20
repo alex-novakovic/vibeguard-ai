@@ -3,6 +3,7 @@ import logging
 from agent.config import CONVERSATION_MODEL, client
 from data.state import ProjectState
 from agent.prompts.drift_prompt import DRIFT_CHECK_PROMPT
+from data.schemas import BacklogItem, VisionDoc
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,7 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
         return {
             "status":      "IDLE",
             "skill_output": "CHAT: No active feature to check drift against.",
+            "drift_context": {"collected_info": [], "attempts": 0},
             "drift_note":  None,
             "tokens":      0
         }
@@ -80,9 +82,28 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
     tokens_used += evaluation_tokens
 
     if not is_sufficient and drift_context["attempts"] < 3:
+        expanded_context = ""
+        if drift_context["attempts"] >= 2 and active_id:
+            expanded_context = await expand_task_description(backlog_item, project_state.vision_doc)
+        
+        specificity_note = ""
+        if expanded_context:
+            specificity_note = (
+                f"\n\nSKILL: DRIFT_INTERVIEW — ATTEMPT {drift_context['attempts']}. "
+                f"The user's answers so far have been vague. Use this exact feature spec to ask a targeted question:\n"
+                f"{expanded_context}\n"
+                f"Ask about a SPECIFIC aspect of this feature that hasn't been mentioned yet. "
+                f"Also consider that the user may be stuck or lacking knowledge — "
+                f"if their answer sounds uncertain or incomplete, offer concrete help: "
+                f"explain the relevant concept, suggest an approach, or ask if they need guidance before continuing."
+            )
+
         return {
             "status":        "COLLECTING",
-            "skill_output":  "DRIFT_INTERVIEW: The developer hasn't been specific enough. Ask them exactly what they are working on right now — what file, what function, what problem are they solving at this moment?",
+            "skill_output":  "DRIFT_INTERVIEW: The developer hasn't been specific enough." 
+            "Ask them specific, conversational questions about *how* they built it, what exactly was changed, "
+            "or if they ran into any blocking errors."
+            + specificity_note,
             "drift_context": drift_context,
             "drift_note":    None,
             "tokens":        tokens_used
@@ -171,6 +192,30 @@ async def evaluate_drift_context_sufficiency(
         logger.error(f"Drift context sufficiency check failed: {e}")
         return (True, 0) 
 
+async def expand_task_description(backlog_item: BacklogItem, vision_doc: VisionDoc) -> str:
+    prompt = f"""
+    A developer is struggling to understand what they should be working on.
+    Expand this task description into concrete, implementation-level guidance.
+    
+    TASK: {backlog_item.name}
+    DESCRIPTION: {backlog_item.description}
+    STACK: {', '.join(vision_doc.techStack)}
+    VISION: {vision_doc.visionStatement}
+    
+    Rewrite as 2-3 sentences that answer:
+    - What specific file or component are they creating or modifying?
+    - What exact action are they performing (function call, API call, UI element)?
+    - What does done look like for this task?
+    
+    Be concrete. Use the actual tech stack. No fluff.
+    """
+    
+    response = await client.chat.completions.create(
+        model=CONVERSATION_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+    return response.choices[0].message.content.strip()
 
 def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -> tuple:
     """
