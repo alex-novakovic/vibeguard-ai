@@ -73,6 +73,15 @@ def on_startup(user_id, request: gr.Request):
         False  # ← initialized_state = False, will initialize on first send
     )
 
+def token_check(session):
+    print("Udje u token_check")
+    print("feature:", session.feature_tokens, "session:", session.project_state.current_cycle_tokens)
+    if session.feature_tokens > 500:
+        gr.Warning("This feature has surpassed 50,000 tokens — you've gone back and forth too many times. Wrap it up and move on.")
+    if session.project_state and session.project_state.current_cycle_tokens > 10000:
+        gr.Warning("This session has surpassed 100,000 tokens total. Consider finishing up your current feature and taking a break.")
+
+
 def save_logs(session):
     if session is None or session.project_state is None:
         return gr.update()
@@ -116,6 +125,7 @@ async def on_drift_check(history, session):
 
     try:
         response, session = await agent.run_agent("DRIFT", status, session)
+        token_check(session)
     except RateLimitReached:
         response = "⚠️ Rate limit reached. Please wait a moment and try again."
     except ModelTimeout:
@@ -149,6 +159,7 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
 
     try:
         response, session = await agent.run_agent(message, status, session)
+        token_check(session)
     except RateLimitReached:
         return _agent_error("⚠️ Rate limit reached. Please wait a moment and try again.")
     except ModelTimeout:
