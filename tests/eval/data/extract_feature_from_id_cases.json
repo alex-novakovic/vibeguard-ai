@@ -1,0 +1,390 @@
+[
+  {
+    "id": "case_001",
+    "description": "Multi-turn negotiation, agent proposes F002, user pushes back, then agrees -> F002",
+    "input": {
+      "user_msg": "alright fine, let's do it",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "F001 is done! I suggest starting F002 — Fetch Transaction Data. It's the critical next step."},
+        {"type": "human", "content": "can't we skip to the UI part?"},
+        {"type": "ai", "content": "F003 depends on F002 being done first, so we need to fetch the data before we can display it. Want to tackle F002?"},
+        {"type": "human", "content": "alright fine, let's do it"}
+      ]
+    },
+    "expected_feature_id": "F002"
+  },
+  {
+    "id": "case_002",
+    "description": "Agent and user go back and forth, user eventually commits to F001 by name -> F001",
+    "input": {
+      "user_msg": "okay I'll set up the environment first",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "to_do", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "Here are your three tasks: F001 - Set up Development Environment, F002 - Fetch Transaction Data, F003 - Display Transactions. Where do you want to start?"},
+        {"type": "human", "content": "what do you recommend?"},
+        {"type": "ai", "content": "I'd start with F001 — everything else depends on having the environment ready."},
+        {"type": "human", "content": "okay I'll set up the environment first"}
+      ]
+    },
+    "expected_feature_id": "F001"
+  },
+  {
+    "id": "case_003",
+    "description": "Active feature in progress, generic affirmative after agent check-in -> continue active F001",
+    "input": {
+      "user_msg": "yes",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "in_progress", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "You started F001 — Set up Development Environment. How's it going?"},
+        {"type": "human", "content": "ran into a small issue with Python versions"},
+        {"type": "ai", "content": "That's common — make sure you're using Python 3.11+. Does that unblock you?"},
+        {"type": "human", "content": "yes"}
+      ]
+    },
+    "expected_feature_id": "F001"
+  },
+  {
+    "id": "case_004",
+    "description": "User refers to feature by description across several turns, no ID mentioned -> F003",
+    "input": {
+      "user_msg": "let's build the table",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "complete", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "F002 is wrapped up — transaction data is fetching correctly. One task left: Display Transactions."},
+        {"type": "human", "content": "nice, so now we show it to the user?"},
+        {"type": "ai", "content": "Exactly — we render the fetched transactions in a table in the UI. Ready to start?"},
+        {"type": "human", "content": "let's build the table"}
+      ]
+    },
+    "expected_feature_id": "F003"
+  },
+  {
+    "id": "case_005",
+    "description": "User initially hesitates, then confirms after agent explains -> F002",
+    "input": {
+      "user_msg": "okay makes sense, starting now",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "Next up is F002 — Fetch Transaction Data using the Etherscan API."},
+        {"type": "human", "content": "how hard is this one?"},
+        {"type": "ai", "content": "Moderate — you'll need to call eth_getBalance and handle pagination for transactions. Estimated 90 minutes."},
+        {"type": "human", "content": "okay makes sense, starting now"}
+      ]
+    },
+    "expected_feature_id": "F002"
+  },
+  {
+    "id": "case_006",
+    "description": "Active feature in progress, user explicitly pivots to a different one -> F003",
+    "input": {
+      "user_msg": "actually I want to jump to the display feature instead",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "in_progress", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "You're currently working on F001 — Set up Development Environment."},
+        {"type": "human", "content": "I know but I'm bored of setup"},
+        {"type": "ai", "content": "Fair enough — though keep in mind F002 and F003 depend on it. What do you want to switch to?"},
+        {"type": "human", "content": "actually I want to jump to the display feature instead"}
+      ]
+    },
+    "expected_feature_id": "F003"
+  },
+  {
+    "id": "case_007",
+    "description": "Long back-and-forth about two features, user finally picks one -> F002",
+    "input": {
+      "user_msg": "let's go with the wallet one",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []},
+          "F004": {"name": "Add Wallet Connect", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "You have three tasks left: F002 - Fetch Transaction Data, F003 - Display Transactions, F004 - Add Wallet Connect."},
+        {"type": "human", "content": "what's easier, the API or the wallet?"},
+        {"type": "ai", "content": "F002 is more straightforward — Etherscan has good docs. Wallet Connect has more moving parts."},
+        {"type": "human", "content": "hmm okay"},
+        {"type": "ai", "content": "Want to start with F002 then?"},
+        {"type": "human", "content": "let's go with the wallet one"}
+      ]
+    },
+    "expected_feature_id": "F004"
+  },
+  {
+    "id": "case_008",
+    "description": "User says 'okay' after multi-turn where agent narrowed down to F003 -> F003",
+    "input": {
+      "user_msg": "okay",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "complete", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "F002 is complete! Only one task left — F003, Display Transactions."},
+        {"type": "human", "content": "how long will that take?"},
+        {"type": "ai", "content": "About 60 minutes — you'll render the data in a Gradio table component."},
+        {"type": "human", "content": "okay"}
+      ]
+    },
+    "expected_feature_id": "F003"
+  },
+  {
+    "id": "case_009",
+    "description": "Completed features in log, user accepts suggestion from history -> only eligible feature F004",
+    "input": {
+      "user_msg": "sure, let's do it",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "complete", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "complete", "cycles": [], "drift_events": []},
+          "F004": {"name": "Add Wallet Connect", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "Great progress — F001, F002, and F003 are all done! Last task is F004 — Add Wallet Connect."},
+        {"type": "human", "content": "is that the last one?"},
+        {"type": "ai", "content": "Yes, that's the final feature before your MVP is complete."},
+        {"type": "human", "content": "sure, let's do it"}
+      ]
+    },
+    "expected_feature_id": "F004"
+  },
+  {
+    "id": "case_010",
+    "description": "Active feature, user asks clarifying question then commits to continuing -> F001",
+    "input": {
+      "user_msg": "got it, I'll keep going",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "in_progress", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "You're working on F001 — Set up Development Environment."},
+        {"type": "human", "content": "do I need to set up a virtual environment or is global fine?"},
+        {"type": "ai", "content": "Always use a virtual environment — run `python -m venv .venv` and activate it. Keeps dependencies isolated."},
+        {"type": "human", "content": "got it, I'll keep going"}
+      ]
+    },
+    "expected_feature_id": "F001"
+  },
+  {
+    "id": "case_011",
+    "description": "User types feature ID in lowercase -> F002",
+    "input": {
+      "user_msg": "let's start f002",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "F001 is done! You have F002 and F003 remaining."},
+        {"type": "human", "content": "let's start f002"}
+      ]
+    },
+    "expected_feature_id": "F002"
+  },
+  {
+    "id": "case_012",
+    "description": "User drops the letter, just types the number -> F002",
+    "input": {
+      "user_msg": "start 2",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "Remaining tasks: F002 - Fetch Transaction Data, F003 - Display Transactions. Which one?"},
+        {"type": "human", "content": "start 2"}
+      ]
+    },
+    "expected_feature_id": "F002"
+  },
+  {
+    "id": "case_013",
+    "description": "User typos the ID as 'F2' instead of 'F002' -> F002",
+    "input": {
+      "user_msg": "ok let's do F2",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "F001 is complete. Want to move on to F002 — Fetch Transaction Data?"},
+        {"type": "human", "content": "ok let's do F2"}
+      ]
+    },
+    "expected_feature_id": "F002"
+  },
+  {
+    "id": "case_014",
+    "description": "User describes the task with no ID at all -> F002",
+    "input": {
+      "user_msg": "I want to do the one where we call the API",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "Two tasks left: F002 - Fetch Transaction Data (calls Etherscan API), F003 - Display Transactions (renders the UI table)."},
+        {"type": "human", "content": "I want to do the one where we call the API"}
+      ]
+    },
+    "expected_feature_id": "F002"
+  },
+  {
+    "id": "case_015",
+    "description": "User references task by order ('the second one') -> F002",
+    "input": {
+      "user_msg": "the second one sounds good",
+      "feature_log": {
+        "features": {
+          "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+          "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+          "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+        }
+      },
+      "history": [
+        {"type": "ai", "content": "Here are your remaining tasks: 1) F002 - Fetch Transaction Data, 2) F003 - Display Transactions. Which do you prefer?"},
+        {"type": "human", "content": "the second one sounds good"}
+      ]
+    },
+    "expected_feature_id": "F003"
+  },
+  {
+  "id": "case_016",
+  "description": "User agreed to F002 earlier but changes mind in the very last message -> F003",
+  "input": {
+    "user_msg": "actually no, let's do the display part instead",
+    "feature_log": {
+      "features": {
+        "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+        "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+        "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+      }
+    },
+    "history": [
+      {"type": "ai", "content": "I suggest F002 — Fetch Transaction Data. Ready?"},
+      {"type": "human", "content": "yeah okay"},
+      {"type": "ai", "content": "Great, starting F002 — Fetch Transaction Data!"},
+      {"type": "human", "content": "actually no, let's do the display part instead"}
+    ]
+  },
+  "expected_feature_id": "F003"
+},
+{
+  "id": "case_017",
+  "description": "User mentions two features but commits to one -> F002",
+  "input": {
+    "user_msg": "I was thinking F003 but let's start with F002 first",
+    "feature_log": {
+      "features": {
+        "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+        "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+        "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+      }
+    },
+    "history": [
+      {"type": "ai", "content": "Two tasks remaining: F002 - Fetch Transaction Data, F003 - Display Transactions."},
+      {"type": "human", "content": "I was thinking F003 but let's start with F002 first"}
+    ]
+  },
+  "expected_feature_id": "F002"
+},
+{
+  "id": "case_018",
+  "description": "User accidentally refers to a completed feature, only valid option is F003 -> F003",
+  "input": {
+    "user_msg": "let's redo the setup",
+    "feature_log": {
+      "features": {
+        "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+        "F002": {"name": "Fetch Transaction Data", "status": "complete", "cycles": [], "drift_events": []},
+        "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": []}
+      }
+    },
+    "history": [
+      {"type": "ai", "content": "F002 is done! Only F003 - Display Transactions is left."},
+      {"type": "human", "content": "let's redo the setup"}
+    ]
+  },
+  "expected_feature_id": "F003"
+},
+{
+  "id": "case_019",
+  "description": "User message sounds like a question but history makes intent clear -> F002",
+  "input": {
+    "user_msg": "I guess we have no choice right",
+    "feature_log": {
+      "features": {
+        "F001": {"name": "Set up Development Environment", "status": "complete", "cycles": [], "drift_events": []},
+        "F002": {"name": "Fetch Transaction Data", "status": "to_do", "cycles": [], "drift_events": []},
+        "F003": {"name": "Display Transactions", "status": "to_do", "cycles": [], "drift_events": [],"dependencies": ["F002"]}
+      }
+    },
+    "history": [
+      {"type": "ai", "content": "F003 depends on F002, so we need to do F002 first — Fetch Transaction Data."},
+      {"type": "human", "content": "can't I just skip it?"},
+      {"type": "ai", "content": "Not really — without the data fetch, there's nothing to display."},
+      {"type": "human", "content": "I guess we have no choice right"}
+    ]
+  },
+  "expected_feature_id": "F002"
+}
+]

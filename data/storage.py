@@ -62,7 +62,7 @@ class Storage(StorageBackend):
 
         return "new", ProjectState()
 
-    def log_feature_cycle(self, feature_log: dict, feature_id: str, event: str, alignment_note: str = None, drift_event: str = None) -> dict:
+    def log_feature_cycle(self, feature_log: dict, feature_id: str, event: str, vision_doc: VisionDoc, alignment_note: str = None, drift_event: str = None) -> dict:
         
         if event not in ("start", "complete", "in_progress"):
             raise EventError(f"Invalid event: {event}. Must be 'start', 'complete' or 'in_progress'")
@@ -117,6 +117,13 @@ class Storage(StorageBackend):
                 })
 
         feature_log["features"][feature_id] = item.model_dump()
+
+        if vision_doc is not None and event in ("start", "complete"):
+            new_status = "in_progress" if event == "start" else "complete"
+            for backlog_item in vision_doc.backlog:
+                if backlog_item.id == feature_id:
+                    backlog_item.status = new_status
+                    break
 
         return feature_log
     

@@ -31,7 +31,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
     project_state = ProjectState(
         vision_doc=vision_doc,
-        feature_log=[],
+        feature_log=[]
     )
     project_state.current_cycle_tokens = scoping.total_tokens
 
@@ -40,7 +40,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
         prompt=state["scoping"].chat_messages,
         response=json.dumps(vision_doc.model_dump()),
         tokens=scoping.total_tokens,
-        user_id=state["user_id"],
+        user_id=state["user_id"]
     )
 
     project_state.current_cycle_tokens = 0                     # reset for guardian cycle
@@ -83,10 +83,10 @@ async def guardian_node(state: AgentState) -> AgentState:
         skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
         skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
-    elif current_completion_status == "COLLECTING":                        
+    elif current_completion_status == "COLLECTING":                      
         completion_res = await handle_completion_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
-    elif current_drift_status == "COLLECTING":                       
+    elif current_drift_status == "COLLECTING":                      
         drift_res = await handle_drift_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state = apply_drift_res(drift_res, state, project_state)
     else:
@@ -180,7 +180,7 @@ def build_agent_graph():
         route_entry,
         {
             "scoping": "scoping",
-            "guardian": "guardian",
+            "guardian": "guardian"
         }
     )
 
@@ -190,7 +190,7 @@ def build_agent_graph():
         route_after_scoping,
         {
             "finish_scoping": "finish_scoping",
-            "end": END,
+            "end": END
         }
     )
 

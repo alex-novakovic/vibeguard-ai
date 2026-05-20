@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
-
 class ScopingSession:
     """
     Encapsulates all state for one user's scoping conversation.
@@ -104,7 +103,7 @@ class ScopingSession:
                         }
                     ],
                     response_format={"type": "json_object"},
-                    temperature=0,
+                    temperature=0
                 )
 
                 raw = response.choices[0].message.content
@@ -119,6 +118,11 @@ class ScopingSession:
 
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = now()
+
+                # fill missing descriptions before Pydantic validation
+                for item in vision_doc.get("backlog", []):
+                    if not item.get("description"):
+                        item["description"] = item.get("name", "No description provided.")
 
                 return VisionDoc(**vision_doc)
 
