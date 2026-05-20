@@ -140,7 +140,6 @@ async def guardian_node(state: AgentState) -> AgentState:
     # add the tokens to the projectstate for overall accounting
     if not tokens_accounted:
         state["feature_tokens"] += skill_tokens
-
     
     state["messages"].append({"role": "assistant", "content": final_response})
 
