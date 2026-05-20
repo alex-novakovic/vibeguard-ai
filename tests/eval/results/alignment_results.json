@@ -1,0 +1,203 @@
+{
+  "timestamp": "2026-05-19T20:18:16.955799",
+  "alignment": {
+    "accuracy": 0.9,
+    "results": [
+      {
+        "id": "align_01",
+        "description": "Happy path -> built exactly what was planned",
+        "expected_alignment": true,
+        "got_alignment": true,
+        "passed": true,
+        "feedback": "The developer built the login form with email and password validation as planned. The addition of client-side validation and error messages aligns with the feature's goal of ensuring a functional login form.",
+        "tokens": 706,
+        "notes": "Should pass cleanly"
+      },
+      {
+        "id": "align_02",
+        "description": "Scope creep -> built more than planned",
+        "expected_alignment": false,
+        "got_alignment": false,
+        "passed": true,
+        "feedback": "The core functionality of the login form was built, but the developer added significant unplanned functionality including OAuth, remember me, and a forgot password flow. This represents scope creep beyond the original feature definition.",
+        "tokens": 697,
+        "notes": "Should detect scope creep"
+      },
+      {
+        "id": "align_03",
+        "description": "Wrong feature built entirely",
+        "expected_alignment": false,
+        "got_alignment": false,
+        "passed": true,
+        "feedback": "The developer built a dashboard page with charts, which is not the login form with email and password validation that was planned. This is a clear deviation from the original feature definition.",
+        "tokens": 683,
+        "notes": "Should detect complete drift"
+      },
+      {
+        "id": "align_04",
+        "description": "Partial completion -> core done, minor thing skipped",
+        "expected_alignment": true,
+        "got_alignment": true,
+        "passed": true,
+        "feedback": "The login form with email and password validation was built, which aligns with the original feature definition. While the error messages were skipped, the core functionality of the login form with validation is present.",
+        "tokens": 689,
+        "notes": "Edge case -> minor skip, core done"
+      },
+      {
+        "id": "align_05",
+        "description": "Technical error during implementation",
+        "expected_alignment": false,
+        "got_alignment": false,
+        "passed": true,
+        "feedback": "The feature is not aligned. The developer attempted to connect to the RPC but encountered errors and the connection is not yet working, which means the core functionality of fetching the wallet balance is not complete.",
+        "tokens": 703,
+        "notes": "Not drift -> just incomplete. Should not mark as complete"
+      },
+      {
+        "id": "align_06",
+        "description": "Built the right thing but used wrong tech stack",
+        "expected_alignment": false,
+        "got_alignment": false,
+        "passed": true,
+        "feedback": "The feature is not aligned. The developer used the Etherscan REST API instead of the required direct RPC connection. While the balance is fetched, the implementation contradicts the project's constraints.",
+        "tokens": 703,
+        "notes": "Right outcome, wrong approach — constraint violated"
+      },
+      {
+        "id": "align_07",
+        "description": "Built exactly what was planned but framed vaguely",
+        "expected_alignment": true,
+        "got_alignment": false,
+        "passed": false,
+        "feedback": "The feature was planned to display transactions in a table with specific fields. The developer's description is vague and doesn't confirm that the required fields (hash, value, timestamp) are displayed. The feature is not aligned because the description does not confirm the core functionality is working as planned.",
+        "tokens": 715,
+        "notes": "Vague language but content matches — should not penalize for poor description"
+      },
+      {
+        "id": "align_08",
+        "description": "Added a nice-to-have feature on top of the planned one",
+        "expected_alignment": true,
+        "got_alignment": true,
+        "passed": true,
+        "feedback": "The core functionality of displaying transactions in a table with hash, value, and timestamp was built, aligning with the original feature definition. The addition of CSV export, while not explicitly planned, is a 'nice to have' and does not contradict the core requirements.",
+        "tokens": 724,
+        "notes": "Extra work done but it's on the nice-to-have list — should not flag as drift"
+      },
+      {
+        "id": "align_09",
+        "description": "User describes debugging session, no actual feature progress",
+        "expected_alignment": false,
+        "got_alignment": false,
+        "passed": true,
+        "feedback": "The feature is not aligned. The developer reports that the connection to the Ethereum RPC is not working, which means the core functionality of fetching the wallet balance is not complete.",
+        "tokens": 694,
+        "notes": "Not drift, not scope creep — just blocked. Should not mark complete"
+      },
+      {
+        "id": "align_10",
+        "description": "Feature complete but user also mentions planning future work",
+        "expected_alignment": true,
+        "got_alignment": true,
+        "passed": true,
+        "feedback": "The developer built the login form with validation, which matches the planned feature. The mention of future additions like OAuth and a dashboard is scope creep, but the core functionality is complete and aligned with the original plan.",
+        "tokens": 700,
+        "notes": "Mentioning future plans is not drift — feature itself is complete and on target"
+      }
+    ]
+  },
+  "sufficiency": {
+    "accuracy": 1.0,
+    "results": [
+      {
+        "id": "suf_01",
+        "description": "Detailed technical answer -> sufficient",
+        "expected": true,
+        "got": true,
+        "passed": true,
+        "tokens": 485,
+        "notes": "Clear technical detail, should be YES"
+      },
+      {
+        "id": "suf_02",
+        "description": "Vague answer -> insufficient",
+        "expected": false,
+        "got": false,
+        "passed": true,
+        "tokens": 454,
+        "notes": "No technical detail, should be NO"
+      },
+      {
+        "id": "suf_03",
+        "description": "Partial detail -> borderline",
+        "expected": false,
+        "got": false,
+        "passed": true,
+        "tokens": 457,
+        "notes": "Mentions backend but no validation detail -> borderline, likely NO"
+      },
+      {
+        "id": "suf_04",
+        "description": "Multi-turn accumulated detail -> sufficient",
+        "expected": true,
+        "got": true,
+        "passed": true,
+        "tokens": 472,
+        "notes": "Accumulated over 3 turns, total detail is sufficient"
+      },
+      {
+        "id": "suf_05",
+        "description": "Mentions unrelated work",
+        "expected": false,
+        "got": false,
+        "passed": true,
+        "tokens": 456,
+        "notes": "Wrong feature described, should be NO"
+      },
+      {
+        "id": "suf_06",
+        "description": "User describes the problem they solved, not the implementation",
+        "expected": true,
+        "got": true,
+        "passed": true,
+        "tokens": 469,
+        "notes": "Problem-solution framing with clear outcome — sufficient"
+      },
+      {
+        "id": "suf_07",
+        "description": "User describes effort but no outcome",
+        "expected": false,
+        "got": false,
+        "passed": true,
+        "tokens": 461,
+        "notes": "No outcome described, no technical detail — insufficient"
+      },
+      {
+        "id": "suf_08",
+        "description": "Single sentence but highly specific and complete",
+        "expected": true,
+        "got": true,
+        "passed": true,
+        "tokens": 472,
+        "notes": "Short but technically precise and complete — sufficient"
+      },
+      {
+        "id": "suf_09",
+        "description": "Multi-turn where early turns are vague but last adds enough detail",
+        "expected": true,
+        "got": true,
+        "passed": true,
+        "tokens": 483,
+        "notes": "Accumulated detail becomes sufficient by the final turn"
+      },
+      {
+        "id": "suf_10",
+        "description": "User confirms done but describes a completely different feature",
+        "expected": false,
+        "got": false,
+        "passed": true,
+        "tokens": 459,
+        "notes": "Describes F003 work, not F002 — wrong feature, insufficient for active task"
+      }
+    ]
+  }
+}

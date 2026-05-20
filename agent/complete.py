@@ -259,11 +259,13 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
         project_state.active_feature_id = None
         project_state.current_cycle_tokens += state["feature_tokens"]
         state["feature_tokens"] = 0
+
         tokens_accounted = True
 
     # Path 3: not aligned — reopen the feature so it stays in_progress
     elif next_status == "IDLE" and completion_res.get("is_aligned") is False:
         state["feature_tokens"] += skill_tokens
+
 
         state["logger"].log_llm_call(
         function_name="feature_not_completed",

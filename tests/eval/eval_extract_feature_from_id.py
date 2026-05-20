@@ -70,6 +70,7 @@ async def run_eval():
     }
     
     os.makedirs("tests/eval/results", exist_ok=True)
+
     with open("tests/eval/results/extract_feature_from_id_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
