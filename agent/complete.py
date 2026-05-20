@@ -257,7 +257,7 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
         
         project_state.previous_feature_id = project_state.active_feature_id
         project_state.active_feature_id = None
-        project_state.current_cycle_tokens = state["feature_tokens"]
+        project_state.current_cycle_tokens += state["feature_tokens"]
         state["feature_tokens"] = 0
         tokens_accounted = True
 
