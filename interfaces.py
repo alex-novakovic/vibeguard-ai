@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from data.schemas import SessionEntry
+from data.state import ProjectState
 if TYPE_CHECKING:
     from agent.agent_session import AgentSession
     from data.schemas import VisionDoc
@@ -25,7 +26,7 @@ class StorageBackend(ABC):
     @abstractmethod
     async def log_feature_cycle(
         self,
-        feature_log: dict,
+        feature_log: list,
         feature_id: str,
         event: str,
         vision_doc: VisionDoc,
@@ -42,7 +43,7 @@ class StorageBackend(ABC):
 
 
     @abstractmethod
-    async def end_session(self, user_id: str, session_id: str, total_tokens: int) -> SessionEntry:
+    async def end_session(self, project_state: ProjectState, user_id: str, session_id: str, total_tokens: int) -> SessionEntry:
         """Record end session. Return session_log"""
         ...
 
@@ -61,7 +62,7 @@ class LoggerBackend(ABC):
         prompt: str,
         response: str,
         tokens: int,
-        session_id: str,
+        user_id: str
     ) -> None:
         """Append an LLM call record to the log file."""
         ...

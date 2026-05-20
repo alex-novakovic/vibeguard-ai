@@ -102,6 +102,7 @@ async def on_exit(request: gr.Request):
         
         # 1. Pozivamo novu end_session sa tačnim argumentima
         updated_session_entry = await storage.end_session(
+            project_state=proj_state,
             user_id=user_id,
             session_id=session_id,
             total_tokens=proj_state.current_cycle_tokens,

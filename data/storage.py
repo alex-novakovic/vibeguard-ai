@@ -131,26 +131,24 @@ class Storage(StorageBackend):
         await new_session.insert()
         return new_session
 
-    async def end_session(self, user_id: str, session_id: str, total_tokens: int) -> SessionEntry:
+    async def end_session(self, project_state: ProjectState, user_id: str, session_id: str, total_tokens: int) -> SessionEntry:
+        
         try:
-            session = await SessionEntry.find_one(
-                SessionEntry.user_id == user_id, 
-                SessionEntry.workSessionId == session_id
+            session = next(
+                (i for i in project_state.session_log 
+                if i.user_id == user_id and i.workSessionId == session_id)
             )
         except Exception as e:
-            raise DatabaseError(f"Failed to fetch session from database: {e}") from e
+           raise MissingSessionId(f"Session {session_id} not found")
+            
         
-        if session is None:
-            raise MissingSessionId(f"Session {session_id} not found")
+       # try: # Agregacija podataka direktno iz FeatureLogItem kolekcije u bazi
+          #  features = await FeatureLogItem.find(FeatureLogItem.user_id == user_id).to_list()
+       # except Exception as e:
+          #  raise DatabaseError(f"Failed to fetch feature logs from database: {e}") from e
         
-        # TODO: vratiti da se prima feature_log iz state-a
-        try: # Agregacija podataka direktno iz FeatureLogItem kolekcije u bazi
-            features = await FeatureLogItem.find(FeatureLogItem.user_id == user_id).to_list()
-        except Exception as e:
-            raise DatabaseError(f"Failed to fetch feature logs from database: {e}") from e
-        
-        completed = [f.feature_id for f in features if f.status == "complete"]
-        drift_count = sum(len(f.drift_events) for f in features)
+        completed = [f.feature_id for f in project_state.feature_log if f.status == "complete"]
+        drift_count = sum(len(f.drift_events) for f in project_state.feature_log)
         
         start = session.startTime
         end = now_dt()

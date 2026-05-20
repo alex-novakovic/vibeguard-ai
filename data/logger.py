@@ -11,7 +11,7 @@ class Logger(LoggerBackend):
         prompt: str,
         response: str,
         tokens: int,
-        user_id: str=None,
+        user_id: str,
     ) -> None:
         
         # Validate inputs
@@ -25,10 +25,10 @@ class Logger(LoggerBackend):
             raise ValueError(f"tokens must be a positive integer, got {tokens}")
         if not user_id:
             raise ValueError("user_id cannot be empty")
-        
 
         # 2. Kreiramo instancu našeg modela
         log_entry = LLMCallLog(
+            timestamp=now(),
             function_name=function_name,
             prompt=prompt,
             response=response,

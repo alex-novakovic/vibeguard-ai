@@ -37,12 +37,12 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
     await state["logger"].log_llm_call(
         function_name="scoping_session",
-        prompt=json.dumps(state["scoping"].chat_messages),
+        prompt=state["scoping"].chat_messages,
         response=vision_doc.model_dump_json(),
         tokens=scoping.total_tokens,
         user_id=state["user_id"]
     )
-
+    
     project_state.current_cycle_tokens = scoping.total_tokens                    # reset for guardian cycle
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
     clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to the first task?"

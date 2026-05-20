@@ -80,9 +80,9 @@ class SessionEntry(Document):
         indexes = ["user_id", "workSessionId"]
 
 class LLMCallLog(Document):
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: str
     function_name: str
-    prompt: str
+    prompt: str | List[dict]  # Allow both raw string prompts and structured chat messages
     response: str
     tokens: int
     user_id: str
