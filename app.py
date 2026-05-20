@@ -177,20 +177,20 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
             return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), True, "existing", session, gr.update()
 
         if prev is None and active is not None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", None, None, vision_doc=proj_state.vision_doc)
+            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", proj_state.vision_doc, None, None)
         elif prev == active:
             if session.drift_note is not None and session.alignment_note is not None:
-               proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", session.alignment_note, session.drift_note, vision_doc=proj_state.vision_doc)
+               proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
                session.alignment_note = None
                session.drift_note = None
             elif session.alignment_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", session.alignment_note, None, vision_doc=proj_state.vision_doc)
+                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, None)
                 session.alignment_note = None
             elif session.drift_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, session.drift_note, vision_doc=proj_state.vision_doc)
+                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, None, session.drift_note)
                 session.drift_note = None
         elif prev is not None and active is None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", session.alignment_note, None, vision_doc=proj_state.vision_doc)
+            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
             session.alignment_note = None
             
         _session_states[request.session_hash]["agent_session"] = session

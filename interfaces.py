@@ -24,6 +24,7 @@ class StorageBackend(ABC):
         feature_log: dict,
         feature_id: str,
         event: str,
+        vision_doc: VisionDoc,
         alignment_note: str = None,
         drift_event: str = None
     ) -> dict:
