@@ -3,12 +3,9 @@ from data.state import ProjectState
 from typing import List, Dict, TypedDict, Literal
 from data.logger import Logger
 
-
 PHASE_SCOPING = "scoping"
 PHASE_GUARDIAN = "guardian"
 
-# ── 1. STATE ─────────────────────────────────────────────────────────────────
-# This is what flows through the graph — replaces agent_state dict
 class AgentState(TypedDict):
     user_id: str
     phase: str
@@ -23,9 +20,10 @@ class AgentState(TypedDict):
     completion_status: Literal["IDLE", "COLLECTING"]  
     completion_context: Dict[str, any]  # Stores collected data temporarily
     alignment_note: str | None
-    drift_status: Literal["IDLE", "COLLECTING"] # "IDLE" | "COLLECTING"
+    drift_status: Literal["IDLE", "COLLECTING"] 
     drift_context: Dict[str, any]      # {"collected_info": [], "attempts": 0}
     drift_note: str | None   # populated after verdict
+    feature_tokens: int
 
 class AgentSession:
     """
@@ -47,6 +45,7 @@ class AgentSession:
         self.drift_status: str = "IDLE"
         self.drift_context: dict = {"collected_info": [], "attempts": 0}
         self.drift_note: str | None = None
+        self.feature_tokens: int = 0
 
 
 

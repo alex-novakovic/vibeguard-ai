@@ -78,11 +78,8 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
     project_state=project_state,
     active_feature_id=active_id
     )
-    tokens_used += evaluation_tokens
 
-    # enough context — run the check
-    planned = f"{active_feat.name}: {backlog_item.description}"
-    actual  = " ".join(drift_context["collected_info"])
+    tokens_used += evaluation_tokens
 
     if not is_sufficient and drift_context["attempts"] < 3:
         return {
@@ -92,6 +89,10 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
             "drift_note":    None,
             "tokens":        tokens_used
         }
+    
+    # enough context — run the check
+    planned = f"{active_feat.get('name')}: {backlog_item.description}"
+    actual  = " ".join(drift_context["collected_info"])
 
     from agent.complete import get_alignment_context
     res = await check_drift(
@@ -172,6 +173,7 @@ async def evaluate_drift_context_sufficiency(
         logger.error(f"Drift context sufficiency check failed: {e}")
         return (True, 0) 
 
+
 def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -> tuple:
     """
     Applies the drift flow result to state and project_state.
@@ -185,3 +187,5 @@ def apply_drift_res(drift_res: dict, state: dict, project_state: ProjectState) -
     state["drift_note"]    = drift_res.get("drift_note")
 
     return skill_output, tokens, state
+
+

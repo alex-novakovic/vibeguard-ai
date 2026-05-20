@@ -32,19 +32,18 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
 
     project_state = ProjectState(
         vision_doc=vision_doc,
-        feature_log=[],
+        feature_log=[]
     )
-    project_state.current_cycle_tokens = scoping.total_tokens
 
     await state["logger"].log_llm_call(
         function_name="scoping_session",
         prompt=json.dumps(state["scoping"].chat_messages),
         response=vision_doc.model_dump_json(),
         tokens=scoping.total_tokens,
-        user_id=state["user_id"],
+        user_id=state["user_id"]
     )
 
-    project_state.current_cycle_tokens = 0                     # reset for guardian cycle
+    project_state.current_cycle_tokens = scoping.total_tokens                    # reset for guardian cycle
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
     clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to the first task?"
 
@@ -83,7 +82,7 @@ async def guardian_node(state: AgentState) -> AgentState:
         skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
         skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
-    elif current_completion_status == "COLLECTING":                        
+    elif current_completion_status == "COLLECTING":                      
         completion_res = await handle_completion_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state, tokens_accounted = await apply_completion_res(completion_res, state, project_state, skill_tokens)
     elif current_drift_status == "COLLECTING":                       
@@ -139,8 +138,8 @@ async def guardian_node(state: AgentState) -> AgentState:
     final_response = llm_res["text"]
     skill_tokens += llm_res.get("tokens", 0)
     # add the tokens to the projectstate for overall accounting
-    if project_state and not tokens_accounted:
-        project_state.current_cycle_tokens += skill_tokens
+    if not tokens_accounted:
+        state["feature_tokens"] += skill_tokens
     
     state["messages"].append({"role": "assistant", "content": final_response})
 
@@ -181,7 +180,7 @@ def build_agent_graph():
         route_entry,
         {
             "scoping": "scoping",
-            "guardian": "guardian",
+            "guardian": "guardian"
         }
     )
 
@@ -191,7 +190,7 @@ def build_agent_graph():
         route_after_scoping,
         {
             "finish_scoping": "finish_scoping",
-            "end": END,
+            "end": END
         }
     )
 
@@ -239,7 +238,8 @@ class Agent(AgentFunctions):
             "alignment_note":session.alignment_note,
             "drift_status" : initial_drift_status,
             "drift_context" : initial_drift_context,
-            "drift_note":session.drift_note
+            "drift_note":session.drift_note,
+            "feature_tokens":session.feature_tokens
           }
 
         # run the graph
@@ -261,5 +261,6 @@ class Agent(AgentFunctions):
         session.drift_status  = result["drift_status"]
         session.drift_context = result["drift_context"]
         session.drift_note    = result["drift_note"]
+        session.feature_tokens = result["feature_tokens"]
 
         return result["response"], session

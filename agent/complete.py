@@ -18,11 +18,16 @@ async def vision_alignment_check(
     Returns a dict: {"is_aligned": bool, "feedback": str, "tokens": int}
     """
 
+    json_instruction = (
+        "\n\nReturn your final assessment strictly as a JSON object with the keys "
+        "'is_aligned' (boolean) and 'feedback' (string)."
+    )
+
     full_prompt = ALIGNMENT_PROMPT.format(
         planned_feature=planned_feature,
         actual_work=actual_work,
         vision_context=vision_context
-    )
+    ) + json_instruction
 
     try:
         # Using asyncio.to_thread to keep the LLM call from blocking your async loop
@@ -85,7 +90,7 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
             "context": context,
             "tokens": tokens_used,
             "is_aligned": None,
-            "alignment_note": None,
+            "alignment_note": None
         }
 
     active_feat = next(
@@ -101,7 +106,7 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
             "context": {"collected_info": [], "attempts": 0},
             "tokens": tokens_used,
             "is_aligned": None,
-            "alignment_note": None,
+            "alignment_note": None
         }
 
     alignment_res = await vision_alignment_check(
@@ -111,17 +116,31 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
     )
     tokens_used += alignment_res["tokens"]
 
+    # compute remaining after this feature completes
+    remaining = [
+    item for item in project_state.vision_doc.backlog
+    if item.status == "to_do" and item.id != active_feature_id
+    ]  
+
     return {
-        "skill_output": (
-            f"ALIGNMENT_SUCCESS: {alignment_res['feedback']}. Feature is now marked COMPLETE."
-            if alignment_res["is_aligned"]
-            else f"ALIGNMENT_FAILED: {alignment_res['feedback']}. Do NOT mark as complete. Explain the drift."
-        ),
+        "skill_output": ((
+        f"ALIGNMENT_SUCCESS — no tasks remaining, this is the final feature. "
+        f"Congratulate the user on completing the full MVP. Do NOT ask about next tasks. {alignment_res['feedback']}."
+        if not remaining
+        else f"ALIGNMENT_SUCCESS — {len(remaining)} task(s) remaining. {alignment_res['feedback']}. Feature is now marked COMPLETE."
+    )
+    if alignment_res["is_aligned"]
+    else (
+        f"ALIGNMENT_FAILED — {len(remaining)} task(s) remaining. {alignment_res['feedback']}. Do NOT mark as complete. Explain the drift."
+        if remaining
+        else f"ALIGNMENT_FAILED — this is the final feature but it needs fixes. {alignment_res['feedback']}. Do NOT mark as complete. Explain the drift."
+    )
+    ),
         "next_status": "IDLE",
         "context": {"collected_info": [], "attempts": 0},
         "tokens": tokens_used,
         "is_aligned": alignment_res["is_aligned"],
-        "alignment_note": alignment_res["feedback"],
+        "alignment_note": alignment_res["feedback"]
     }
 
 
@@ -145,17 +164,16 @@ async def evaluate_context_sufficiency(
     # 1. Look up the task description from the backlog if an ID is provided
     task_context = "No specific feature context provided."
     if active_feature_id and hasattr(project_state, "vision_doc") and hasattr(project_state.vision_doc, "backlog"):
-        # Assuming backlog is a list of features/tasks
         target_feature = next((f for f in project_state.vision_doc.backlog if getattr(f, "id", None) == active_feature_id), None)
         if target_feature:
-            f_title = getattr(target_feature, "title", "Unknown")
+            f_name = getattr(target_feature, "name", "Unknown")
             f_desc = getattr(target_feature, "description", "No description provided.")
-            task_context = f"Feature: {f_title}\nDescription/Requirements: {f_desc}"
+            task_context = f"Feature: {f_name}\nDescription/Requirements: {f_desc}"
 
     # 2. Inject this task target into the prompt
     prompt = f"""
-    You are a technical manager checking if a developer has provided enough information about their task completion.
-    
+    You are a technical manager checking if a developer has provided enough information to verify their task is complete.
+
     TARGET TASK REQUIREMENTS:
     {task_context}
 
@@ -163,11 +181,37 @@ async def evaluate_context_sufficiency(
     "{gathered_text}"
 
     TASK:
-    Based on the Target Task Requirements, has the developer provided enough concrete, specific technical details regarding what they changed, built, or verified? 
-    (e.g., did they mention specific components, database changes, logic updates, or file completions that match the requirement?)
+    Has the developer provided enough information to reasonably conclude the task is done?
 
-    Respond with EXACTLY 'YES' or 'NO'. Do not include extra punctuation, markdown formatting, or explanation.
+    ACCEPT as sufficient (return YES) if the developer:
+    - Describes what they built, even in high-level terms
+    - Explains the problem they solved or the outcome they achieved
+    - Says it works or is tested, even without deep technical detail
+    - Uses problem-solution framing with a clear outcome ("it wasn't working because X, I fixed it, now it works")
+    - Accumulates enough context across multiple messages that together describe completion
+
+    REJECT as insufficient (return NO) only if:
+    - The answer is purely vague ("done", "finished", "it works") with zero supporting detail
+    - The description clearly refers to a different feature entirely
+    - The developer admits it is not working or not complete
+
+    DO NOT require:
+    - Specific file names, component names, or library names
+    - Mention of the exact technology from the task requirements (e.g. "Ethereum" or "RPC")
+    - Database schema details or exact implementation steps
+    - Code-level specifics
+
+    EXAMPLES:
+    - "done" → NO (zero detail)
+    - "it works now" → NO (no supporting detail)
+    - "The balance wasn't showing because of a decimal conversion issue. I fixed it and now it displays correctly." → YES (problem-solution with clear outcome)
+    - "I connected to the API and the data shows up on screen" → YES (outcome described)
+    - "I worked on the dashboard instead" → NO (wrong feature)
+    - "I tried but kept getting errors" → NO (not complete)
+
+    Respond with EXACTLY 'YES' or 'NO'. No punctuation, no explanation.
     """
+
     try:
         response = await client.chat.completions.create(
             model=CONVERSATION_MODEL,
@@ -203,32 +247,35 @@ async def apply_completion_res(completion_res: dict, state: AgentState, project_
 
     # Path 2: aligned — mark complete
     if next_status == "IDLE" and completion_res.get("is_aligned") is True:
-        project_state.current_cycle_tokens += skill_tokens
-        
+        state["feature_tokens"] += skill_tokens
+
         await state["logger"].log_llm_call(
         function_name="feature_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],
-        tokens=project_state.current_cycle_tokens,
-        user_id=state["user_id"],
+        tokens=state["feature_tokens"],
+        user_id=state["user_id"]
        )
         
         project_state.previous_feature_id = project_state.active_feature_id
         project_state.active_feature_id = None
-        project_state.current_cycle_tokens = 0
+        project_state.current_cycle_tokens += state["feature_tokens"]
+        state["feature_tokens"] = 0
         tokens_accounted = True
 
     # Path 3: not aligned — reopen the feature so it stays in_progress
     elif next_status == "IDLE" and completion_res.get("is_aligned") is False:
-        project_state.previous_feature_id = project_state.active_feature_id
-        # active_feature_id stays set — feature remains in_progress for adjustment
+        state["feature_tokens"] += skill_tokens
 
         await state["logger"].log_llm_call(
         function_name="feature_not_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],
-        tokens=project_state.current_cycle_tokens,
-        user_id=state["user_id"],
+        tokens=state["feature_tokens"],
+        user_id=state["user_id"]
     )
+        project_state.previous_feature_id = project_state.active_feature_id
+        # active_feature_id stays set — feature remains in_progress for adjustment
+        tokens_accounted = True
 
     return skill_output, skill_tokens, state, tokens_accounted

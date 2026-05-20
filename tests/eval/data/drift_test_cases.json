@@ -1,0 +1,187 @@
+{
+  "drift_test_cases": [
+    {
+      "id": "drift_01",
+      "description": "Happy path -> working exactly on the planned feature",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I'm calling eth_getBalance via ethers.js and converting the result from wei to ETH using formatEther.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": false,
+      "expected_severity": "none",
+      "notes": "Clear on-track work, no drift"
+    },
+    {
+      "id": "drift_02",
+      "description": "Mild drift -> working on related but non-planned work",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I'm styling the balance display component and adding some animations to make it look nicer.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": true,
+      "expected_severity": "mild",
+      "notes": "UI work while data fetching task is active — mild drift"
+    },
+    {
+      "id": "drift_03",
+      "description": "Severe drift -> working on a completely different feature",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I'm building the user authentication system with JWT tokens and refresh token rotation.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": true,
+      "expected_severity": "severe",
+      "notes": "Completely off task — severe drift"
+    },
+    {
+      "id": "drift_04",
+      "description": "Debugging the active feature -> not drift",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I'm getting CORS errors when calling the RPC endpoint. Trying to configure a proxy in vite.config.js to route the requests.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": false,
+      "expected_severity": "none",
+      "notes": "Debugging is part of the task — not drift"
+    },
+    {
+      "id": "drift_05",
+      "description": "Researching the active task -> not drift",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "Reading through the ethers.js docs to understand how providers work and which RPC method to use for balance fetching.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": false,
+      "expected_severity": "none",
+      "notes": "Research for the active task is not drift"
+    },
+    {
+      "id": "drift_06",
+      "description": "Working on a future backlog feature -> severe drift",
+      "planned_feature": "F001: Set up Development Environment",
+      "actual_work": "I'm implementing the transaction history table with pagination and sorting by timestamp.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": true,
+      "expected_severity": "severe",
+      "notes": "Skipped ahead to a later feature entirely"
+    },
+    {
+      "id": "drift_07",
+      "description": "Setting up tooling related to active task -> not drift",
+      "planned_feature": "F001: Set up Development Environment",
+      "actual_work": "Installing dependencies, setting up eslint and prettier, configuring the vite project structure.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": false,
+      "expected_severity": "none",
+      "notes": "Tooling setup is part of environment setup — on track"
+    },
+    {
+      "id": "drift_08",
+      "description": "Mild drift -> adding nice-to-have while task is active",
+      "planned_feature": "F003: Display transactions in a table with hash, value, and timestamp",
+      "actual_work": "I finished the table and now I'm adding a dark mode toggle because it seemed quick.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet transactions\nSuccess Criteria: User sees a list of transactions\nStack: React, ethers.js\nConstraints: None\nNice to have: Dark mode",
+      "expected_is_drifted": true,
+      "expected_severity": "mild",
+      "notes": "Core task done but now working on nice-to-have without completing — mild drift"
+    },
+    {
+      "id": "drift_09",
+      "description": "Refactoring code from the active feature -> not drift",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "Refactoring the RPC connection logic into a custom useBalance hook to keep the component clean.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_drifted": false,
+      "expected_severity": "none",
+      "notes": "Refactoring within the active feature scope — not drift"
+    },
+    {
+      "id": "drift_10",
+      "description": "Working on backend while frontend task is active -> severe drift",
+      "planned_feature": "F003: Display transactions in a table with hash, value, and timestamp",
+      "actual_work": "I'm setting up a FastAPI backend with SQLAlchemy models to cache transaction data in a database.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet transactions\nSuccess Criteria: User sees a list of transactions\nStack: React, ethers.js\nConstraints: No backend required for MVP",
+      "expected_is_drifted": true,
+      "expected_severity": "severe",
+      "notes": "Adding a backend when constraints say no backend — severe drift"
+    }
+  ],
+
+  "drift_sufficiency_test_cases": [
+    {
+      "id": "dsuf_01",
+      "description": "Specific technical detail -> sufficient",
+      "gathered_text": "I'm editing the useBalance.js hook and calling provider.getBalance with the wallet address from the input field.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "File name and function call mentioned — sufficient"
+    },
+    {
+      "id": "dsuf_02",
+      "description": "Completely vague -> insufficient",
+      "gathered_text": "just coding",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": false,
+      "notes": "No detail whatsoever — insufficient"
+    },
+    {
+      "id": "dsuf_03",
+      "description": "User pastes a code snippet -> sufficient immediately",
+      "gathered_text": "const balance = await provider.getBalance(address); const eth = ethers.formatEther(balance);",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "Code snippet — sufficient immediately per rules"
+    },
+    {
+      "id": "dsuf_04",
+      "description": "Vague but mentions library name -> sufficient",
+      "gathered_text": "Using ethers.js to get the balance.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "Library name mentioned — sufficient per rules"
+    },
+    {
+      "id": "dsuf_05",
+      "description": "Describes frustration with no technical detail -> insufficient",
+      "gathered_text": "I've been stuck for an hour and nothing is working.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": false,
+      "notes": "Emotional response with no technical content — insufficient"
+    },
+    {
+      "id": "dsuf_06",
+      "description": "Multi-turn accumulation reaches sufficiency",
+      "gathered_text": "Working on the balance thing.\nTrying to connect to the node.\nUsing JsonRpcProvider from ethers and calling getBalance on the wallet address.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "Vague at first, last turn adds specific API call — sufficient"
+    },
+    {
+      "id": "dsuf_07",
+      "description": "Describes a concrete action but for wrong feature -> insufficient",
+      "gathered_text": "I'm building the login form and wiring it to the auth endpoint.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": false,
+      "notes": "Technical detail present but for wrong feature — insufficient for drift check"
+    },
+    {
+      "id": "dsuf_08",
+      "description": "Mentions file name only -> sufficient",
+      "gathered_text": "Working inside rpc.js right now.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "File name is enough per rules"
+    }
+  ]
+}

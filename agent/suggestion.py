@@ -16,6 +16,22 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
     log = project_state.feature_log
     features = log["features"] # dict {"F001": { "name":,"status":,"cycles":,"drift_events":}...
     
+    in_progress_ids = {
+    fid for fid, f in features.items()
+    if f["status"] == "in_progress"
+    }
+
+    # if anything is in_progress, return it immediately — no LLM call needed
+    if in_progress_ids:
+        active_id = next(iter(in_progress_ids))
+        active_name = features[active_id]["name"]
+        return {
+            "feature_id":   active_id,
+            "feature_name": active_name,
+            "reason":       f"{active_id} is already in progress. Continue working on it before starting something new.",
+            "tokens":       0
+        }
+    
     # identify completed features
     completed_ids = {
         feature_id for feature_id, feature_data in features.items()
@@ -44,7 +60,7 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
                 "estimatedMinutes": item.estimatedMinutes,
                 "confidence": item.confidence,
                 "scopeFlag": item.scopeFlag,
-                "scopeFlagReason": item.scopeFlagReason,
+                "scopeFlagReason": item.scopeFlagReason
             })
 
     if not ready_tasks:
@@ -83,7 +99,7 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             else "in_progress" if item.id == project_state.active_feature_id
             else "to_do"
             )
-    } for item in vision.backlog],
+    } for item in vision.backlog]
    }
 
     filled_prompt = SUGGESTION_PROMPT.replace(
@@ -95,7 +111,7 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             model=CONVERSATION_MODEL,
             messages=[{"role": "user", "content": filled_prompt}],
             response_format={"type": "json_object"},
-            temperature=0.3
+            temperature=0.2
         )
 
         usage = response.usage

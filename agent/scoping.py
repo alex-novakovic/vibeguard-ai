@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
-
 class ScopingSession:
     """
     Encapsulates all state for one user's scoping conversation.
@@ -113,7 +112,7 @@ class ScopingSession:
                         }
                     ],
                     response_format={"type": "json_object"},
-                    temperature=0,
+                    temperature=0
                 )
 
                 raw = response.choices[0].message.content
@@ -127,16 +126,15 @@ class ScopingSession:
                     raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
                 vision_doc = json.loads(raw)
-                vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
+                vision_doc["createdAt"] = now()
                 vision_doc["user_id"] = user_id
 
+                # fill missing descriptions before Pydantic validation
+                for item in vision_doc.get("backlog", []):
+                    if not item.get("description"):
+                        item["description"] = item.get("name", "No description provided.")
 
-                vision_doc = VisionDoc(**vision_doc)
-                try:
-                    await vision_doc.insert()
-                except Exception as e:
-                    raise DatabaseError(f"Failed to save vision doc to database: {e}") from e
-                return vision_doc
+                return VisionDoc(**vision_doc)
                 
             except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:
