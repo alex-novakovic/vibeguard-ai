@@ -1,5 +1,3 @@
-# eval/run_eval.py
-
 import asyncio
 import json
 import os
@@ -158,8 +156,7 @@ async def main():
         }
     }
 
-    # Ensure targeted sub-directory outputs exist dynamically
-    os.makedirs("eval", exist_ok=True)
+    os.makedirs("tests/eval/results", exist_ok=True)
     with open("tests/eval/results/alignment_results.json", "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
 

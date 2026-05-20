@@ -1,5 +1,6 @@
 import json
 import asyncio
+import os
 from data.schemas import VisionDoc, BacklogItem
 from data.state import ProjectState
 from agent.drift import check_drift, evaluate_drift_context_sufficiency
@@ -187,6 +188,7 @@ async def run_eval():
         },
         "total_tokens": total_tokens,
     }
+    os.makedirs("tests/eval/results", exist_ok=True)
 
     with open("tests/eval/results/drift_eval_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
