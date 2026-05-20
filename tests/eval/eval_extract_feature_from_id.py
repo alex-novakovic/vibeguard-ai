@@ -2,6 +2,7 @@ import json
 import asyncio
 from agent.start_feature import extract_feature_id_from_msg
 import sys
+import os
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -67,8 +68,9 @@ async def run_eval():
         "total_tokens": total_tokens,
         "results":      results,
     }
-
-    with open("tests/eval/results/extract_feature_id_results.json", "w") as f:
+    
+    os.makedirs("tests/eval/results", exist_ok=True)
+    with open("tests/eval/results/extract_feature_from_id_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     print(f"════════════════════════════════")

@@ -1,0 +1,196 @@
+{
+  "alignment_test_cases": [
+    {
+      "id": "align_01",
+      "description": "Happy path -> built exactly what was planned",
+      "planned_feature": "F001: Build a login form with email and password validation",
+      "actual_work": "I built the login form with email input, password input, and client-side validation. Added error messages for invalid email format and empty fields.",
+      "vision_context": "Project: TaskManager\nGoal: Help developers track tasks\nSuccess Criteria: User can log in and manage tasks\nStack: React, FastAPI\nConstraints: None",
+      "expected_is_aligned": true,
+      "notes": "Should pass cleanly"
+    },
+    {
+      "id": "align_02",
+      "description": "Scope creep -> built more than planned",
+      "planned_feature": "F001: Build a login form with email and password validation",
+      "actual_work": "I built the login form, added OAuth with Google, implemented remember me, and added a forgot password flow.",
+      "vision_context": "Project: TaskManager\nGoal: Help developers track tasks\nSuccess Criteria: User can log in\nStack: React, FastAPI\nConstraints: None",
+      "expected_is_aligned": false,
+      "notes": "Should detect scope creep"
+    },
+    {
+      "id": "align_03",
+      "description": "Wrong feature built entirely",
+      "planned_feature": "F001: Build a login form with email and password validation",
+      "actual_work": "I built the dashboard page with charts showing task completion rates.",
+      "vision_context": "Project: TaskManager\nGoal: Help developers track tasks\nSuccess Criteria: User can log in\nStack: React, FastAPI\nConstraints: None",
+      "expected_is_aligned": false,
+      "notes": "Should detect complete drift"
+    },
+    {
+      "id": "align_04",
+      "description": "Partial completion -> core done, minor thing skipped",
+      "planned_feature": "F001: Build a login form with email and password validation",
+      "actual_work": "I built the login form with validation but skipped the error messages for now.",
+      "vision_context": "Project: TaskManager\nGoal: Help developers track tasks\nSuccess Criteria: User can log in\nStack: React, FastAPI\nConstraints: None",
+      "expected_is_aligned": true,
+      "notes": "Edge case -> minor skip, core done"
+    },
+    {
+      "id": "align_05",
+      "description": "Technical error during implementation",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I tried to connect to the RPC but kept getting CORS errors. I set up the connection file but it doesn't work yet.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_aligned": false,
+      "notes": "Not drift -> just incomplete. Should not mark as complete"
+    },
+    {
+      "id": "align_06",
+      "description": "Built the right thing but used wrong tech stack",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I fetched the wallet balance using the Etherscan REST API instead of a direct RPC connection. It returns the correct balance.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: Must use direct RPC",
+      "expected_is_aligned": false,
+      "notes": "Right outcome, wrong approach — constraint violated"
+    },
+    {
+      "id": "align_07",
+      "description": "Built exactly what was planned but framed vaguely",
+      "planned_feature": "F003: Display transactions in a table with hash, value, and timestamp",
+      "actual_work": "I made the transaction list look nice with all the important fields showing.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet transactions\nSuccess Criteria: User sees a list of transactions\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_aligned": true,
+      "notes": "Vague language but content matches — should not penalize for poor description"
+    },
+    {
+      "id": "align_08",
+      "description": "Added a nice-to-have feature on top of the planned one",
+      "planned_feature": "F003: Display transactions in a table with hash, value, and timestamp",
+      "actual_work": "I built the transaction table with hash, value, and timestamp. I also added CSV export since it seemed easy.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet transactions\nSuccess Criteria: User sees a list of transactions\nStack: React, ethers.js\nConstraints: None\nNice to have: CSV export",
+      "expected_is_aligned": true,
+      "notes": "Extra work done but it's on the nice-to-have list — should not flag as drift"
+    },
+    {
+      "id": "align_09",
+      "description": "User describes debugging session, no actual feature progress",
+      "planned_feature": "F002: Connect to Ethereum RPC and fetch wallet balance",
+      "actual_work": "I spent the whole session debugging why my node connection keeps dropping. Tried three different RPC providers, none worked consistently.",
+      "vision_context": "Project: CryptoTracker\nGoal: Track wallet balances\nSuccess Criteria: User sees their ETH balance\nStack: React, ethers.js\nConstraints: None",
+      "expected_is_aligned": false,
+      "notes": "Not drift, not scope creep — just blocked. Should not mark complete"
+    },
+    {
+      "id": "align_10",
+      "description": "Feature complete but user also mentions planning future work",
+      "planned_feature": "F001: Build a login form with email and password validation",
+      "actual_work": "Login form is done with full validation. I'm already thinking about adding OAuth next and maybe a dashboard.",
+      "vision_context": "Project: TaskManager\nGoal: Help developers track tasks\nSuccess Criteria: User can log in\nStack: React, FastAPI\nConstraints: None",
+      "expected_is_aligned": true,
+      "notes": "Mentioning future plans is not drift — feature itself is complete and on target"
+    }
+  ],
+  "sufficiency_test_cases": [
+    {
+      "id": "suf_01",
+      "description": "Detailed technical answer -> sufficient",
+      "gathered_text": "I built the login form component in React, added Yup validation schema for email format and required fields, wired it to the FastAPI /auth/login endpoint, and tested with valid and invalid inputs.",
+      "active_feature_id": "F001",
+      "feature_name": "Login Form",
+      "feature_description": "Build a login form with email and password validation",
+      "expected": true,
+      "notes": "Clear technical detail, should be YES"
+    },
+    {
+      "id": "suf_02",
+      "description": "Vague answer -> insufficient",
+      "gathered_text": "I finished it. It works now.",
+      "active_feature_id": "F001",
+      "feature_name": "Login Form",
+      "feature_description": "Build a login form with email and password validation",
+      "expected": false,
+      "notes": "No technical detail, should be NO"
+    },
+    {
+      "id": "suf_03",
+      "description": "Partial detail -> borderline",
+      "gathered_text": "I added the form and connected it to the backend.",
+      "active_feature_id": "F001",
+      "feature_name": "Login Form",
+      "feature_description": "Build a login form with email and password validation",
+      "expected": false,
+      "notes": "Mentions backend but no validation detail -> borderline, likely NO"
+    },
+    {
+      "id": "suf_04",
+      "description": "Multi-turn accumulated detail -> sufficient",
+      "gathered_text": "I built the form inputs.\nI added email format validation.\nI tested with wrong passwords and it shows the right error.",
+      "active_feature_id": "F001",
+      "feature_name": "Login Form",
+      "feature_description": "Build a login form with email and password validation",
+      "expected": true,
+      "notes": "Accumulated over 3 turns, total detail is sufficient"
+    },
+    {
+      "id": "suf_05",
+      "description": "Mentions unrelated work",
+      "gathered_text": "I worked on the dashboard charts and some styling.",
+      "active_feature_id": "F001",
+      "feature_name": "Login Form",
+      "feature_description": "Build a login form with email and password validation",
+      "expected": false,
+      "notes": "Wrong feature described, should be NO"
+    },
+    {
+      "id": "suf_06",
+      "description": "User describes the problem they solved, not the implementation",
+      "gathered_text": "The wallet balance wasn't showing because of a decimal conversion issue. I fixed it and now it displays correctly.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "Problem-solution framing with clear outcome — sufficient"
+    },
+    {
+      "id": "suf_07",
+      "description": "User describes effort but no outcome",
+      "gathered_text": "I spent a few hours on it and tried a bunch of different approaches.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": false,
+      "notes": "No outcome described, no technical detail — insufficient"
+    },
+    {
+      "id": "suf_08",
+      "description": "Single sentence but highly specific and complete",
+      "gathered_text": "Called eth_getBalance via ethers.js provider, converted from wei to ETH with formatEther, and rendered it in the UI.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "Short but technically precise and complete — sufficient"
+    },
+    {
+      "id": "suf_09",
+      "description": "Multi-turn where early turns are vague but last adds enough detail",
+      "gathered_text": "I worked on it for a while.\nGot it connecting eventually.\nUsed ethers.js to call the RPC, handled the wei conversion, and tested with my own wallet address.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": true,
+      "notes": "Accumulated detail becomes sufficient by the final turn"
+    },
+    {
+      "id": "suf_10",
+      "description": "User confirms done but describes a completely different feature",
+      "gathered_text": "Done! I styled the transaction table and added sorting by timestamp.",
+      "active_feature_id": "F002",
+      "feature_name": "Fetch Wallet Balance",
+      "feature_description": "Connect to Ethereum RPC and fetch wallet balance",
+      "expected": false,
+      "notes": "Describes F003 work, not F002 — wrong feature, insufficient for active task"
+    }
+  ]
+}

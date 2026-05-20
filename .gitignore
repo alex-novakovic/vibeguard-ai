@@ -4,3 +4,5 @@ data/logs/
 **/__pycache__
 
 .gradio
+
+tests/eval/results/

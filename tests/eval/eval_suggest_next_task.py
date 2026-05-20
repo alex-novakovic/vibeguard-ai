@@ -3,6 +3,7 @@ import asyncio
 from data.schemas import VisionDoc
 from data.state import ProjectState
 from agent.suggestion import suggest_next_task
+import os
 
 
 def load_cases(path: str) -> list:
@@ -70,6 +71,7 @@ async def run_eval():
         "results":       results
     }
 
+    os.makedirs("tests/eval/results", exist_ok=True)
     # save results
     with open("tests/eval/results/suggest_next_task_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
