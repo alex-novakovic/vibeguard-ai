@@ -1,4 +1,4 @@
-from datetime import datetime
+from utils.common import now
 import os
 from interfaces import LoggerBackend
 from data.schemas import LLMCallLog
@@ -26,6 +26,7 @@ class Logger(LoggerBackend):
         if not user_id:
             raise ValueError("user_id cannot be empty")
         
+
         # 2. Kreiramo instancu našeg modela
         log_entry = LLMCallLog(
             function_name=function_name,
@@ -37,3 +38,4 @@ class Logger(LoggerBackend):
         
         # 3. Asinhrono ga "bacamo" u MongoDB kao poseban JSON dokument
         await log_entry.insert()
+

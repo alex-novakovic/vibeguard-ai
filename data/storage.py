@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
 from data.schemas import VisionDoc, FeatureLogItem, SessionEntry, CycleItem, DriftItem
 from data.state import ProjectState
 from interfaces import StorageBackend
 from typing import List, Optional
-from utils.exceptions import DatabaseError, VibeGuardError
+from utils.exceptions import DatabaseError
 import uuid
+from datetime import datetime, timezone
 
 from utils.exceptions import (
     DatabaseError,
@@ -30,6 +30,7 @@ class Storage(StorageBackend):
                 drift_events=[]
             )
             
+
             # DIREKTNO UPISIVANJE U BAZU:
             # Pošto je operacija asinhrona, moramo staviti 'await'
             await log_item.insert()
@@ -66,8 +67,8 @@ class Storage(StorageBackend):
            
 
     async def log_feature_cycle(self, user_id: str, feature_id: str, event: str, alignment_note: str = None, drift_event: str = None) -> list:
-        if event not in ("start", "complete"):
-            raise EventError(f"Invalid event: {event}. Must be 'start' or 'complete'")
+        if event not in ("start", "complete", "in_progress"):
+            raise EventError(f"Invalid event: {event}. Must be 'start', 'complete' or 'in_progress'")
 
         try:# 1. Pronalazimo samo onaj JEDAN dokument koji menjamo (preko složenog indeksa)
          item = await FeatureLogItem.find_one(
@@ -85,21 +86,40 @@ class Storage(StorageBackend):
         # 2. Menjamo podatke unutar tog dokumenta (sada preko čistih Pydantic modela)
         if event == "start":
             item.status = "in_progress"
+
             item.cycles.append(
-                CycleItem(started_at=now, completed_at=None, alignment_note=None)
+                CycleItem(started_at=now, completed_at=None, alignment_notes=[])
             )
             if drift_event:
                 item.drift_events.append(
                     DriftItem(drift_time=now, drift_note=drift_event)
                 )
 
+
+        elif event == "in_progress":
+            if not item.cycles:
+                raise EventError(f"Cannot update '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
+            if alignment_note is not None:
+                item.cycles[-1].alignment_notes.append(
+                    {"timestamp": now, "note": alignment_note}
+                )
+            if drift_event is not None:
+                item.drift_events.append(
+                    DriftItem(drift_time=now, drift_note=drift_event)
+                )
+
+
         elif event == "complete":
             if not item.cycles:
                 raise EventError(f"Cannot complete '{feature_id}': no active cycle.")
             item.status = "complete"
             item.cycles[-1].completed_at = now
-            item.cycles[-1].alignment_note = alignment_note
-
+            if alignment_note is not None:
+               item.cycles[-1].alignment_notes.append({
+                    "timestamp": now,
+                    "note": alignment_note
+        })
+  
         try:# 3. DIREKTNO UPISUJEMO PROMENU u bazu za tu specifičnu funkciju
             await item.save()
         except Exception as e:
@@ -113,6 +133,7 @@ class Storage(StorageBackend):
 
         return feature_log
     
+
     async def start_session(self, user_id: str) -> SessionEntry:
       new_session = SessionEntry(
         user_id=user_id,
@@ -144,9 +165,7 @@ class Storage(StorageBackend):
     
       start = session.startTime.replace(tzinfo=timezone.utc) if session.startTime.tzinfo is None else session.startTime
       end = datetime.now(timezone.utc)
-
       duration = int((end - start).total_seconds() / 60)
-    
       session.endTime = end
       session.featureCyclesCompleted = completed
       session.driftEventsCount = drift_count
@@ -170,15 +189,17 @@ class Storage(StorageBackend):
                 await vision_doc.save()
 
             # 2. Prolazimo kroz listu feature logova i ažuriramo svaki u bazi
-            if feature_log:
+            if feature_log is not None:
                 for feature in feature_log:
                     await feature.save()
 
             # 3. Prolazimo kroz listu sesija i ažuriramo svaku u bazi
-            if session_log:
+            if session_log is not None:
                 for session_entry in session_log:
                     await session_entry.save()
 
+
         except Exception as e:
             # Umesto FileSystemError, sada bacamo VibeGuardError ako pukne baza
-            raise VibeGuardError(f"Database save failed during dump_logs: {e}") from e
+            raise DatabaseError(f"Database save failed during dump_logs: {e}") from e
+

@@ -28,6 +28,7 @@ class StorageBackend(ABC):
         feature_log: dict,
         feature_id: str,
         event: str,
+        vision_doc: VisionDoc,
         alignment_note: str = None,
         drift_event: str = None
     ) -> list:
@@ -35,9 +36,10 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
+
     async def start_session(self, user_id: str) -> SessionEntry:
         """Record start session. Return session_log"""
-        ...
+
 
     @abstractmethod
     async def end_session(self, user_id: str, session_id: str, total_tokens: int) -> SessionEntry:

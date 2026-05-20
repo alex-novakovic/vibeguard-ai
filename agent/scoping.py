@@ -1,13 +1,10 @@
-import os
 import json
 import random
 import logging
 import asyncio
-from datetime import datetime, timezone
+from utils.common import now
 from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
-
-# Importing your specific exception classes
 from utils.exceptions import (
     DatabaseError,
     RateLimitReached, 
@@ -16,26 +13,18 @@ from utils.exceptions import (
     EmptyResponse
 )
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
+from openai import RateLimitError, APIConnectionError, APITimeoutError
+from agent.config import CONVERSATION_MODEL, PARSING_MODEL, client
+from utils.exceptions import RateLimitReached, ModelTimeout, ParsingFailed, EmptyResponse
 from data.schemas import VisionDoc
+from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
+from datetime import datetime, timezone
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-logger = logging.getLogger("ScopingSession")
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
 
-CONVERSATION_MODEL = os.getenv("CONVERSATION_MODEL", "google/gemini-2.0-flash-lite-001")
-PARSING_MODEL = os.getenv("PARSING_MODEL", "anthropic/claude-3-haiku")
 
 class ScopingSession:
     """
@@ -75,8 +64,7 @@ class ScopingSession:
 
         for attempt in range(retries):
             try:
-                response = await asyncio.to_thread(
-                    client.chat.completions.create,
+                response = await client.chat.completions.create (
                     model=CONVERSATION_MODEL,
                     messages=self.chat_messages,
                     temperature=0.7,
@@ -112,8 +100,7 @@ class ScopingSession:
 
         for attempt in range(3):
             try:
-                response = await asyncio.to_thread(
-                    client.chat.completions.create,
+                response = await client.chat.completions.create (
                     model=PARSING_MODEL,
                     messages=[
                         {
@@ -142,6 +129,7 @@ class ScopingSession:
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = datetime.now(timezone.utc).isoformat()
                 vision_doc["user_id"] = user_id
+
 
                 vision_doc = VisionDoc(**vision_doc)
                 try:

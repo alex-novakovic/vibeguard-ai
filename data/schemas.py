@@ -20,7 +20,7 @@ class BacklogItem(BaseModel):
 class CycleItem(BaseModel):
     started_at: datetime
     completed_at: Optional[datetime] = None
-    alignment_note: Optional[str] = None
+    alignment_notes: List[dict] = []
     tokens_used: Optional[int] = None
 
 class DriftItem(BaseModel):
@@ -52,7 +52,7 @@ class VisionDoc(Document):
 
 class FeatureLogItem(Document):
     user_id: str = Field(index=True)
-    feature_id: str = Field(description="ID iz backloga, npr. F001")
+    feature_id: str = Field(description="ID from backlog, e.g., F001")
     name: str
     status: Literal["to_do", "in_progress", "complete"]
     cycles: List[CycleItem]  # start_time, end_time, alignment_note, tokens_used
