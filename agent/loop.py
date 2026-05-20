@@ -33,7 +33,6 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
         vision_doc=vision_doc,
         feature_log=[]
     )
-    project_state.current_cycle_tokens = scoping.total_tokens
 
     state["logger"].log_llm_call(
         function_name="scoping_session",
@@ -43,7 +42,7 @@ async def finish_scoping_node(state: AgentState) -> AgentState:
         user_id=state["user_id"]
     )
 
-    project_state.current_cycle_tokens = 0                     # reset for guardian cycle
+    project_state.current_cycle_tokens = scoping.total_tokens                    # reset for guardian cycle
     clean_response = state["response"].replace("SCOPING_COMPLETE", "").strip()
     clean_response += "\n\n✅ Scoping complete! Your vision doc has been saved. Want to move to the first task?"
 
@@ -139,8 +138,8 @@ async def guardian_node(state: AgentState) -> AgentState:
     final_response = llm_res["text"]
     skill_tokens += llm_res.get("tokens", 0)
     # add the tokens to the projectstate for overall accounting
-    if project_state and not tokens_accounted:
-        project_state.current_cycle_tokens += skill_tokens
+    if not tokens_accounted:
+        state.feature_tokens += skill_tokens
     
     state["messages"].append({"role": "assistant", "content": final_response})
 
@@ -238,7 +237,8 @@ class Agent(AgentFunctions):
             "alignment_note":session.alignment_note,
             "drift_status" : initial_drift_status,
             "drift_context" : initial_drift_context,
-            "drift_note":session.drift_note
+            "drift_note":session.drift_note,
+            "feature_tokens":session.feature_tokens
           }
 
         # run the graph

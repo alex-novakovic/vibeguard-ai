@@ -68,7 +68,7 @@ async def run_eval():
         "results":      results,
     }
 
-    with open("tests/eval/results/extract_feature_id_results.json", "w") as f:
+    with open("tests/eval/results/extract_feature_from_id_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     print(f"════════════════════════════════")

@@ -1,0 +1,191 @@
+{
+  "drift_check": {
+    "total_cases": 10,
+    "correct": 10,
+    "accuracy": 1.0,
+    "results": [
+      {
+        "id": "drift_01",
+        "description": "Happy path -> working exactly on the planned feature",
+        "passed": true,
+        "expected_is_drifted": false,
+        "got_is_drifted": false,
+        "expected_severity": "none",
+        "got_severity": "none",
+        "feedback": "The developer is implementing the planned feature by fetching the ETH balance using ethers.js.",
+        "tokens": 244
+      },
+      {
+        "id": "drift_02",
+        "description": "Mild drift -> working on related but non-planned work",
+        "passed": true,
+        "expected_is_drifted": true,
+        "got_is_drifted": true,
+        "expected_severity": "mild",
+        "got_severity": "mild",
+        "feedback": "The developer is working on styling and animations, which is unrelated to fetching the wallet balance.",
+        "tokens": 240
+      },
+      {
+        "id": "drift_03",
+        "description": "Severe drift -> working on a completely different feature",
+        "passed": true,
+        "expected_is_drifted": true,
+        "got_is_drifted": true,
+        "expected_severity": "severe",
+        "got_severity": "severe",
+        "feedback": "The developer is working on user authentication, which is unrelated to fetching wallet balances.",
+        "tokens": 236
+      },
+      {
+        "id": "drift_04",
+        "description": "Debugging the active feature -> not drift",
+        "passed": true,
+        "expected_is_drifted": false,
+        "got_is_drifted": false,
+        "expected_severity": "none",
+        "got_severity": "mild",
+        "feedback": "The developer is addressing a technical issue (CORS) that is necessary to connect to the Ethereum RPC, which is part of the planned feature.",
+        "tokens": 261
+      },
+      {
+        "id": "drift_05",
+        "description": "Researching the active task -> not drift",
+        "passed": true,
+        "expected_is_drifted": false,
+        "got_is_drifted": false,
+        "expected_severity": "none",
+        "got_severity": "none",
+        "feedback": "The developer is currently researching the necessary tools and methods to implement the planned feature.",
+        "tokens": 242
+      },
+      {
+        "id": "drift_06",
+        "description": "Working on a future backlog feature -> severe drift",
+        "passed": true,
+        "expected_is_drifted": true,
+        "got_is_drifted": true,
+        "expected_severity": "severe",
+        "got_severity": "mild",
+        "feedback": "The developer is working on transaction history, which is not directly related to displaying the ETH balance.",
+        "tokens": 234
+      },
+      {
+        "id": "drift_07",
+        "description": "Setting up tooling related to active task -> not drift",
+        "passed": true,
+        "expected_is_drifted": false,
+        "got_is_drifted": false,
+        "expected_severity": "none",
+        "got_severity": "none",
+        "feedback": "The developer is setting up the development environment, which is part of the planned feature.",
+        "tokens": 232
+      },
+      {
+        "id": "drift_08",
+        "description": "Mild drift -> adding nice-to-have while task is active",
+        "passed": true,
+        "expected_is_drifted": true,
+        "got_is_drifted": true,
+        "expected_severity": "mild",
+        "got_severity": "mild",
+        "feedback": "The developer is working on dark mode, which is a nice-to-have and not part of the core planned feature.",
+        "tokens": 260
+      },
+      {
+        "id": "drift_09",
+        "description": "Refactoring code from the active feature -> not drift",
+        "passed": true,
+        "expected_is_drifted": false,
+        "got_is_drifted": false,
+        "expected_severity": "none",
+        "got_severity": "none",
+        "feedback": "The developer is refactoring the RPC connection logic, which is related to fetching the wallet balance, so they have not drifted.",
+        "tokens": 247
+      },
+      {
+        "id": "drift_10",
+        "description": "Working on backend while frontend task is active -> severe drift",
+        "passed": true,
+        "expected_is_drifted": true,
+        "got_is_drifted": true,
+        "expected_severity": "severe",
+        "got_severity": "severe",
+        "feedback": "The developer is building a backend, which is outside the scope of the planned feature.",
+        "tokens": 249
+      }
+    ]
+  },
+  "drift_sufficiency": {
+    "total_cases": 8,
+    "correct": 8,
+    "accuracy": 1.0,
+    "results": [
+      {
+        "id": "dsuf_01",
+        "description": "Specific technical detail -> sufficient",
+        "passed": true,
+        "expected": true,
+        "got": true,
+        "tokens": 206
+      },
+      {
+        "id": "dsuf_02",
+        "description": "Completely vague -> insufficient",
+        "passed": true,
+        "expected": false,
+        "got": false,
+        "tokens": 185
+      },
+      {
+        "id": "dsuf_03",
+        "description": "User pastes a code snippet -> sufficient immediately",
+        "passed": true,
+        "expected": true,
+        "got": true,
+        "tokens": 202
+      },
+      {
+        "id": "dsuf_04",
+        "description": "Vague but mentions library name -> sufficient",
+        "passed": true,
+        "expected": true,
+        "got": true,
+        "tokens": 191
+      },
+      {
+        "id": "dsuf_05",
+        "description": "Describes frustration with no technical detail -> insufficient",
+        "passed": true,
+        "expected": false,
+        "got": false,
+        "tokens": 195
+      },
+      {
+        "id": "dsuf_06",
+        "description": "Multi-turn accumulation reaches sufficiency",
+        "passed": true,
+        "expected": true,
+        "got": true,
+        "tokens": 212
+      },
+      {
+        "id": "dsuf_07",
+        "description": "Describes a concrete action but for wrong feature -> insufficient",
+        "passed": true,
+        "expected": false,
+        "got": false,
+        "tokens": 197
+      },
+      {
+        "id": "dsuf_08",
+        "description": "Mentions file name only -> sufficient",
+        "passed": true,
+        "expected": true,
+        "got": true,
+        "tokens": 191
+      }
+    ]
+  },
+  "total_tokens": 4024
+}

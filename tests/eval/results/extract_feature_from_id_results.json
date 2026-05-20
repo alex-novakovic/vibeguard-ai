@@ -2,7 +2,7 @@
   "total_cases": 19,
   "correct": 19,
   "accuracy": 1.0,
-  "total_tokens": 5160,
+  "total_tokens": 5144,
   "results": [
     {
       "id": "case_001",
@@ -28,8 +28,8 @@
       "passed": true,
       "expected": "F001",
       "got": "F001",
-      "reason": "User confirmed they are unblocked and the current feature is in progress.",
-      "tokens": 335
+      "reason": "User confirmed they want to continue the in-progress feature.",
+      "tokens": 333
     },
     {
       "id": "case_004",
@@ -37,8 +37,8 @@
       "passed": true,
       "expected": "F003",
       "got": "F003",
-      "reason": "The user wants to start building the table to display transactions, which corresponds to the 'Display Transactions' feature.",
-      "tokens": 276
+      "reason": "User wants to start building the table to display transactions.",
+      "tokens": 265
     },
     {
       "id": "case_005",
@@ -55,8 +55,8 @@
       "passed": true,
       "expected": "F003",
       "got": "F003",
-      "reason": "User explicitly requested to jump to the display feature.",
-      "tokens": 367
+      "reason": "User explicitly requested to start the display feature.",
+      "tokens": 366
     },
     {
       "id": "case_007",
@@ -64,8 +64,8 @@
       "passed": true,
       "expected": "F004",
       "got": "F004",
-      "reason": "User chose to start with the wallet connect feature.",
-      "tokens": 334
+      "reason": "User chose to start with the wallet feature.",
+      "tokens": 333
     },
     {
       "id": "case_008",
@@ -91,8 +91,8 @@
       "passed": true,
       "expected": "F001",
       "got": "F001",
-      "reason": "User is continuing the in-progress feature.",
-      "tokens": 361
+      "reason": "User is continuing with the in-progress feature.",
+      "tokens": 362
     },
     {
       "id": "case_011",
@@ -100,8 +100,8 @@
       "passed": true,
       "expected": "F002",
       "got": "F002",
-      "reason": "The user explicitly requested to start F002.",
-      "tokens": 202
+      "reason": "User wants to start F002.",
+      "tokens": 200
     },
     {
       "id": "case_012",
@@ -127,8 +127,8 @@
       "passed": true,
       "expected": "F002",
       "got": "F002",
-      "reason": "The user wants to start the feature that calls the Etherscan API, which corresponds to 'Fetch Transaction Data' (F002).",
-      "tokens": 239
+      "reason": "The user wants to start the feature that calls the Etherscan API, which corresponds to F002 - Fetch Transaction Data.",
+      "tokens": 237
     },
     {
       "id": "case_015",
@@ -145,8 +145,8 @@
       "passed": true,
       "expected": "F003",
       "got": "F003",
-      "reason": "User wants to start displaying transactions instead.",
-      "tokens": 267
+      "reason": "User wants to display transactions instead of fetching data.",
+      "tokens": 269
     },
     {
       "id": "case_017",
