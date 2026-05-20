@@ -184,7 +184,7 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
                session.alignment_note = None
                session.drift_note = None
             elif session.alignment_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", session.alignment_note, None, vision_doc=proj_state.vision_doc)
+                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", session.alignment_note, None, proj_state.vision_doc)
                 session.alignment_note = None
             elif session.drift_note is not None:
                 proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, session.drift_note, vision_doc=proj_state.vision_doc)
