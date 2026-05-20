@@ -190,7 +190,7 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
                 proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", None, session.drift_note, proj_state.vision_doc)
                 session.drift_note = None
         elif prev is not None and active is None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", session.alignment_note, None, vision_doc=proj_state.vision_doc)
+            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", session.alignment_note, None, proj_state.vision_doc)
             session.alignment_note = None
             
         _session_states[request.session_hash]["agent_session"] = session
