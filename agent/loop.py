@@ -82,12 +82,10 @@ async def guardian_node(state: AgentState) -> AgentState:
         skill_output = f"INITIAL_SUGGESTION: {res['feature_name']} because {res['reason']}"
         skill_tokens += res.get("tokens", 0)
         state["just_completed_scoping"] = False
-    elif current_completion_status == "COLLECTING":  
-        print("complete")                    
+    elif current_completion_status == "COLLECTING":                      
         completion_res = await handle_completion_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
-    elif current_drift_status == "COLLECTING":  
-        print("drift")                    
+    elif current_drift_status == "COLLECTING":                     
         drift_res = await handle_drift_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state = apply_drift_res(drift_res, state, project_state)
     else:
@@ -97,13 +95,11 @@ async def guardian_node(state: AgentState) -> AgentState:
 
         match intent:
             case "SUGGEST":
-                print("suggest")
                 res = await suggest_next_task(project_state)
                 skill_output = f"SUGGESTION: {res['feature_name']} - {res['reason']}"
                 skill_tokens += res.get("tokens", 0)
 
             case "START":
-                print("start")
                 res = await extract_feature_id_from_msg(user_msg, project_state.feature_log, state["messages"][-10:])
                 skill_tokens += res.get("tokens", 0)
                 action_result = await start_feature(project_state, res["feature_id"])
@@ -117,11 +113,9 @@ async def guardian_node(state: AgentState) -> AgentState:
 
             case "COMPLETE":  # just the first message on completion, if the message explains enough, great, if not, current_completion_status == "COLLECTING"
                 # First message claiming completion — enter the flow
-                print("complete")
                 completion_res = await handle_completion_flow(state, user_msg, project_state)
                 skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
             case "CHAT":
-                print("chat")
                 if active_feature_id:
                     feature_name = project_state.feature_log["features"][active_feature_id]["name"]
                     project_state.previous_feature_id = active_feature_id
