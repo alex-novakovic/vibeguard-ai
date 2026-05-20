@@ -4,11 +4,6 @@ from agent.agent_utils import classify_guardian_intent
 import sys
 import os
 
-
-sys.stdout.reconfigure(encoding="utf-8")
-
-
-
 sys.stdout.reconfigure(encoding="utf-8")
 
 
@@ -73,7 +68,7 @@ async def run_eval():
         "total_tokens": total_tokens,
         "results":      results,
     }
-
+    
     os.makedirs("tests/eval/results", exist_ok=True)
     with open("tests/eval/results/classify_guardian_intent_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
