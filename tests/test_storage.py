@@ -20,6 +20,7 @@ VALID_BACKLOG_ITEM = {
 }
 
 VALID_VISION_DOC = {
+    "user_id": "test-user-123",
     "createdAt": "2026-01-01T00:00:00",
     "projectName": "VibeGuard",
     "visionStatement": "AI-powered project guardian",
@@ -120,13 +121,12 @@ class TestBacklogItemEnforcement:
         with pytest.raises(ValidationError):
             BacklogItem(**bad)
 
-    def test_invalid_confidence_literal_raises(self):
+    def test_invalid_confidence_is_coerced_to_low(self):
         """
-        confidence is Literal["high","low"]. "medium" is not allowed.
+        confidence validator coerces unrecognised values to 'low' instead of raising.
         """
-        bad = {**VALID_BACKLOG_ITEM, "confidence": "medium"}
-        with pytest.raises(ValidationError):
-            BacklogItem(**bad)
+        item = BacklogItem(**{**VALID_BACKLOG_ITEM, "confidence": "medium"})
+        assert item.confidence == "low"
 
     def test_scope_flag_reason_defaults_to_none(self):
         """
@@ -176,12 +176,12 @@ class TestProjectStateInit:
 
     def test_defaults_when_created_with_no_args(self):
         """
-        A default ProjectState must have vision_doc and feature_log
-        as None, both feature ID fields as None, and token counter at 0.
+        A default ProjectState must have vision_doc as None, feature_log
+        as an empty list, both feature ID fields as None, and token counter at 0.
         """
         state = ProjectState()
         assert state.vision_doc is None
-        assert state.feature_log is None
+        assert state.feature_log == []
         assert state.active_feature_id is None
         assert state.previous_feature_id is None
         assert state.current_cycle_tokens == 0
@@ -198,12 +198,12 @@ class TestProjectStateInit:
 
     def test_feature_log_is_mapped_from_input(self):
         """
-        When a feature_log dict is passed, state.feature_log must
-        hold exactly that dictionary.
+        When a feature_log list is passed, state.feature_log must
+        reference exactly that list.
         """
-        feature_log = {"features": {"F001": {"status": "to_do", "cycles": [], "drift_events": []}}}
+        feature_log = []
         state = ProjectState(feature_log=feature_log)
-        assert state.feature_log == feature_log
+        assert state.feature_log is feature_log
 
     def test_token_counter_starts_at_zero_with_data(self):
         """

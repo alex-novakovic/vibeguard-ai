@@ -255,6 +255,7 @@ async def run_conversation_turn(call_fn, retries: int = 3):
 
 class TestNetworkResilience:
 
+    @pytest.mark.asyncio
     async def test_retries_exactly_three_times_on_timeout(self):
         """
         If every attempt raises APITimeoutError, the function
@@ -269,6 +270,7 @@ class TestNetworkResilience:
             f"Expected 3 attempts, got {mock_call.call_count}"
         )
 
+    @pytest.mark.asyncio
     async def test_raises_model_timeout_not_raw_exception(self):
         """
         After all retries fail, must raise ModelTimeout —
@@ -280,6 +282,7 @@ class TestNetworkResilience:
         with pytest.raises(ModelTimeout):
             await run_conversation_turn(mock_call, retries=3)
 
+    @pytest.mark.asyncio
     async def test_raises_rate_limit_reached_on_rate_limit_error(self):
         """
         After all retries fail with RateLimitError, must raise
@@ -290,6 +293,7 @@ class TestNetworkResilience:
         with pytest.raises(RateLimitReached):
             await run_conversation_turn(mock_call, retries=3)
 
+    @pytest.mark.asyncio
     async def test_succeeds_if_third_attempt_works(self):
         """
         If the first two calls fail but the third succeeds,

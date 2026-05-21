@@ -1,5 +1,6 @@
 import json
 import asyncio
+from types import SimpleNamespace
 from agent.start_feature import extract_feature_id_from_msg
 import sys
 import os
@@ -12,6 +13,13 @@ def load_cases(path: str) -> list:
         return json.load(f)
 
 
+def _dict_to_feature_log(d: dict) -> list:
+    return [
+        SimpleNamespace(feature_id=fid, name=f["name"], status=f["status"], cycle=None)
+        for fid, f in d.get("features", {}).items()
+    ]
+
+
 async def run_eval():
     cases = load_cases("tests/eval/data/extract_feature_from_id_cases.json")
 
@@ -20,11 +28,12 @@ async def run_eval():
 
     for case in cases:
         inp = case["input"]
+        feature_log = _dict_to_feature_log(inp["feature_log"])
 
         try:
             result = await extract_feature_id_from_msg(
                 user_msg=inp["user_msg"],
-                feature_log=inp["feature_log"],
+                feature_log=feature_log,
                 history=inp["history"],
             )
         except Exception as e:
@@ -68,7 +77,7 @@ async def run_eval():
         "total_tokens": total_tokens,
         "results":      results,
     }
-    
+
     os.makedirs("tests/eval/results", exist_ok=True)
     with open("tests/eval/results/extract_feature_from_id_results.json", "w") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
