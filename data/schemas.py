@@ -3,8 +3,6 @@ from typing import Optional, List, Literal
 from datetime import datetime, timezone
 from beanie import Document
 
-# --- POMOĆNI MODELI (Pydantic BaseModel) ---
-
 class BacklogItem(BaseModel):
     id: str
     name: str
@@ -27,10 +25,8 @@ class BacklogItem(BaseModel):
 class CycleItem(BaseModel):
     started_at: datetime
     completed_at: Optional[datetime] = None
-    alignment_notes: List[dict] = []  # {"timestamp": ..., "note": ...}
-    drift_events: List[dict] = []     # {"timestamp": ..., "note": ...}
-
-# --- BEANIE DOKUMENTI (MongoDB Kolekcije) ---
+    alignment_notes: List[dict] = []  
+    drift_events: List[dict] = []     
 
 class VisionDoc(Document):
     user_id: str = Field(index=True)
@@ -84,10 +80,10 @@ class SessionEntry(Document):
 class LLMCallLog(Document):
     timestamp: datetime
     function_name: str
-    prompt: str | List[dict]  # Allow both raw string prompts and structured chat messages
+    prompt: str | List[dict]  
     response: str
     tokens: int
     user_id: str
 
     class Settings:
-        name = "llm_calls"  # Ovo će biti naziv kolekcije u MongoDB-u
+        name = "llm_calls" 

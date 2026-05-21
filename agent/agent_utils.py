@@ -35,24 +35,16 @@ async def classify_guardian_intent(user_message: str, active_feature_id: str | N
         }
 
 async def generate_guardian_response(project_state, user_msg, skill_output, history: list):
-    # 1. Prepare the dynamic context (unchanged)
+    #Prepare the dynamic context (unchanged)
     formatted_prompt = GUARDIAN_PROMPT.format(
         vision_statement=project_state.vision_doc.visionStatement,
         success_criteria=", ".join(project_state.vision_doc.successCriteria),
         active_task=project_state.active_feature_id or "No active task.",
         backlog=json.dumps([{"id": item.id, "name": item.name, "status": item.status} for item in project_state.vision_doc.backlog])
     )
-
-    # 2. Build the message chain
-    # Start with System
+    #Start with System
     messages = [{"role": "system", "content": formatted_prompt}]
-    
-    # Add the last 10 messages from history (Conversation Memory)
-    # We slice [-10:] to keep it efficient
     messages.extend(history[-10:])
-    
-    # Add the current Turn Data (The "Now")
-    # We include skill_output here so the AI knows what the "Skills" found
     messages.append({
         "role": "user", 
         "content": f"Internal Skill Data: {skill_output}\n\nUser Message: {user_msg}"

@@ -20,7 +20,6 @@ class Storage(StorageBackend):
         feature_log = []
         
         for feature in vision_doc.backlog:
-            # Kreiramo Beanie dokument za svaki item iz backloga
             log_item = FeatureLogItem(
                 user_id=vision_doc.user_id,
                 feature_id=feature.id,
@@ -29,31 +28,22 @@ class Storage(StorageBackend):
                 cycle=None,
             )
             
-
-            # DIREKTNO UPISIVANJE U BAZU:
-            # Pošto je operacija asinhrona, moramo staviti 'await'
-            #await log_item.insert()
-            
-            # Dodajemo upisani dokument u našu listu
             feature_log.append(log_item)
             
         return feature_log
 
     async def load_or_create_project(self, user_id: str) -> tuple:   
         try:
-            # 1. Tražimo VisionDoc za korisnika
             vision_doc = await VisionDoc.find_one(VisionDoc.user_id == user_id)
-            # Ako korisnik ne postoji u bazi, vraćamo čist nov stanje
             if vision_doc is None:
                 return "new", ProjectState()
 
             if vision_doc:
-               # 2. Ako postoji, povlačimo sve njegove feature logove iz MongoDB-u  
+               
                feature_log = await FeatureLogItem.find(FeatureLogItem.user_id == user_id).to_list()
             
-               # 3. Povlačimo sve njegove dosadašnje sesije
                session_log = await SessionEntry.find(SessionEntry.user_id == user_id).to_list() 
-                # 4. Pakujemo sve u ProjectState (dodatna polja se sama inicijalizuju unutar klase)
+              
                state = ProjectState(
                     vision_doc=vision_doc, 
                     feature_log=feature_log, 
@@ -79,7 +69,6 @@ class Storage(StorageBackend):
 
         timestamp = get_time()
 
-        # 2. Menjamo podatke unutar tog dokumenta (sada preko čistih Pydantic modela)
         if event == "start":
             item.status = "in_progress"
             item.cycle = CycleItem(started_at=timestamp)
@@ -129,12 +118,6 @@ class Storage(StorageBackend):
             )
         except Exception as e:
            raise MissingSessionId(f"Session {session_id} not found")
-            
-        
-       # try: # Agregacija podataka direktno iz FeatureLogItem kolekcije u bazi
-          #  features = await FeatureLogItem.find(FeatureLogItem.user_id == user_id).to_list()
-       # except Exception as e:
-          #  raise DatabaseError(f"Failed to fetch feature logs from database: {e}") from e
         
         completed = [f.feature_id for f in project_state.feature_log if f.status == "complete"]
         drift_count = sum(len(f.cycle.drift_events) for f in project_state.feature_log if f.cycle)
@@ -149,11 +132,7 @@ class Storage(StorageBackend):
         session.driftEventsCount = drift_count
         session.totalTokensUsed = total_tokens
         session.totalDurationMinutes = duration
-        
-        #try:
-         #   await session.save()
-        #xcept Exception as e:
-         #   raise DatabaseError(f"Failed to save session to database: {e}") from e
+ 
         return session
 
     async def dump_logs(self, vision_doc: Optional[VisionDoc], feature_log: List[FeatureLogItem], session_log: List[SessionEntry]) -> None:
@@ -162,22 +141,18 @@ class Storage(StorageBackend):
         Sada direktno i asinhrono čuva prosleđene Beanie dokumente u MongoDB.
         """
         try:
-            # 1. Ako postoji vizija, asinhrono je čuvamo/ažuriramo u bazi
             if vision_doc:
                 await vision_doc.save()
 
-            # 2. Prolazimo kroz listu feature logova i ažuriramo svaki u bazi
             if feature_log is not None:
                 for feature in feature_log:
                     await feature.save()
 
-            # 3. Prolazimo kroz listu sesija i ažuriramo svaku u bazi
             if session_log is not None:
                 for session_entry in session_log:
                     await session_entry.save()
 
 
         except Exception as e:
-            # Umesto FileSystemError, sada bacamo VibeGuardError ako pukne baza
             raise DatabaseError(f"Database save failed during dump_logs: {e}") from e
 

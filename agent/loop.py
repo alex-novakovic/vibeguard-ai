@@ -13,10 +13,6 @@ from agent.complete import handle_completion_flow, apply_completion_res
 from agent.drift import handle_drift_flow, apply_drift_res
 
 
-
-# ── 2. NODES ─────────────────────────────────────────────────────────────────
-# Each node receives the full state, does work, returns updated state
-
 async def scoping_node(state: AgentState) -> AgentState:
     """Handles one turn of the scoping conversation."""
     scoping = state["scoping"]
@@ -68,7 +64,6 @@ async def guardian_node(state: AgentState) -> AgentState:
     current_completion_status = state.get("completion_status", "IDLE")
     current_drift_status      = state.get("drift_status", "IDLE")
     
-    # 1. ADD USER MESSAGE TO HISTORY IMMEDIATELY
     if "messages" not in state or state["messages"] is None:
         state["messages"] = []
     state["messages"].append({"role": "user", "content": user_msg})
@@ -126,10 +121,9 @@ async def guardian_node(state: AgentState) -> AgentState:
             case _:
                 skill_output = "CHAT: Unrecognized intent."
     
-    # 4. Generate Final Response with Context
     # We pass only the last 10 messages for token efficiency
     llm_res = await generate_guardian_response(
-        project_state=project_state,  # change this to project context, because it is expensive this way
+        project_state=project_state,  
         user_msg=user_msg,
         skill_output=skill_output,
         history=state["messages"]  
@@ -137,7 +131,6 @@ async def guardian_node(state: AgentState) -> AgentState:
 
     final_response = llm_res["text"]
     skill_tokens += llm_res.get("tokens", 0)
-    # add the tokens to the projectstate for overall accounting
     if not tokens_accounted:
         state["feature_tokens"] += skill_tokens
     
@@ -145,10 +138,6 @@ async def guardian_node(state: AgentState) -> AgentState:
 
     return {**state, "response": final_response, "messages": state["messages"],"project_state": project_state}
 
-
-
-# ── 3. EDGES ─────────────────────────────────────────────────────────────────
-# Conditions that decide which node runs next
 
 def detect_scoping_complete(response: str) -> bool:
     last_line = response.strip().split("\n")[-1].strip().upper()
@@ -164,9 +153,6 @@ def route_entry(state: AgentState) -> Literal["scoping", "guardian"]:
     """Entry point — which phase are we in?"""
     return state["phase"]
 
-
-# ── 4. BUILD THE GRAPH ────────────────────────────────────────────────────────
-
 def build_agent_graph():
     graph = StateGraph(AgentState)
 
@@ -175,7 +161,6 @@ def build_agent_graph():
     graph.add_node("finish_scoping", finish_scoping_node)
     graph.add_node("guardian", guardian_node)
 
-    # entry point — routes to scoping or guardian based on phase
     graph.set_conditional_entry_point(
         route_entry,
         {
@@ -184,7 +169,6 @@ def build_agent_graph():
         }
     )
 
-    # after scoping node — check if complete
     graph.add_conditional_edges(
         "scoping",
         route_after_scoping,
@@ -194,18 +178,13 @@ def build_agent_graph():
         }
     )
 
-    # finish_scoping and guardian always end
     graph.add_edge("finish_scoping", END)
     graph.add_edge("guardian", END)
 
     return graph.compile()
 
-
-# compile once at module level
 agent_graph = build_agent_graph()
 
-
-# ── 5. run_agent — same signature as before ───────────────────────────────────
 class Agent(AgentFunctions):
     async def run_agent(self, user_message: str, status: str, session: AgentSession) -> tuple:
         """
@@ -242,10 +221,8 @@ class Agent(AgentFunctions):
             "feature_tokens":session.feature_tokens
           }
 
-        # run the graph
         result = await agent_graph.ainvoke(input_state)
 
-        # sync updated state back to session
         session.phase = result["phase"]
         session.project_state = result["project_state"]
         session.just_completed_scoping = result["just_completed_scoping"]
@@ -257,7 +234,6 @@ class Agent(AgentFunctions):
         session.completion_status = result["completion_status"]
         session.completion_context = result["completion_context"]
         session.alignment_note = result["alignment_note"]
-
         session.drift_status  = result["drift_status"]
         session.drift_context = result["drift_context"]
         session.drift_note    = result["drift_note"]

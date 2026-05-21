@@ -4,9 +4,6 @@ from pydantic import ValidationError
 from data.schemas import BacklogItem, VisionDoc
 from data.state import ProjectState
 
-
-# ── shared fixtures ───────────────────────────────────────────────────────────
-
 VALID_BACKLOG_ITEM = {
     "id": "F001",
     "name": "User Authentication",
@@ -33,14 +30,6 @@ VALID_VISION_DOC = {
     "niceToHave": ["Dark mode"],
     "backlog": [VALID_BACKLOG_ITEM],
 }
-
-
-# ════════════════════════════════════════════════════════════════
-# 1. VISION DOC VALIDATION
-# Tests that VisionDoc accepts a complete valid dictionary and
-# rejects dictionaries that are missing mandatory fields.
-# (Pydantic replaces an explicit validate_vision_doc function.)
-# ════════════════════════════════════════════════════════════════
 
 class TestVisionDocValidation:
 
@@ -85,14 +74,6 @@ class TestVisionDocValidation:
         assert doc.availableTime is None
         assert doc.constraints is None
         assert doc.experienceLevel is None
-
-
-# ════════════════════════════════════════════════════════════════
-# 2. PYDANTIC TYPE ENFORCEMENT
-# Tests that BacklogItem and VisionDoc reject incorrect data types.
-# Minimum requirement: a string where a list is expected must
-# raise a ValidationError.
-# ════════════════════════════════════════════════════════════════
 
 class TestBacklogItemEnforcement:
 
@@ -164,13 +145,6 @@ class TestVisionDocEnforcement:
         bad = {**VALID_VISION_DOC, "availableTimeHours": "forty"}
         with pytest.raises(ValidationError):
             VisionDoc(**bad)
-
-
-# ════════════════════════════════════════════════════════════════
-# 3. STATE MANAGEMENT
-# Tests that ProjectState initialises correctly and that all
-# internal attributes are properly mapped from the input data.
-# ════════════════════════════════════════════════════════════════
 
 class TestProjectStateInit:
 

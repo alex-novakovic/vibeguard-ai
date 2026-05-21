@@ -43,8 +43,7 @@ async def on_startup(user_id, request: gr.Request):
         session = AgentSession()
         session.user_id = user_id
         status, state = await storage.load_or_create_project(user_id)
-        new_session_entry = await storage.start_session(user_id) #ovo je promenjeno jer nije vise ceo session_log zajedno
-        #ovde treba dodati izvlacenje session_id iz new_session_entry i cuvanje u session objektu, a zatim i cuvanje tog session objekta u _session_states
+        new_session_entry = await storage.start_session(user_id) 
         session_id = new_session_entry.workSessionId
         state.session_log.append(new_session_entry)
         _session_states[request.session_hash] = {}
@@ -65,9 +64,8 @@ async def on_startup(user_id, request: gr.Request):
     if status == "existing":
         session.phase = PHASE_GUARDIAN
         # restore active feature and set is_returning
-        #features = state.feature_log.get("features", {})
-        #active = next((fid for fid, f in features.items() if f["status"] == "in_progress"),None)
-        #session.is_returning = active is not None  # ← set here
+        active = next((f.feature_id for f in state.feature_log if f.status == "in_progress"), None)
+        session.is_returning = active is not None
         return (
             user_id,
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
@@ -100,9 +98,8 @@ async def on_exit(request: gr.Request):
         return
     try:
         proj_state = session.project_state
-        user_id = session.user_id  # Uzimamo user_id koji imamo sačuvan u session objektu
+        user_id = session.user_id  
         
-        # 1. Pozivamo novu end_session sa tačnim argumentima
         updated_session_entry = await storage.end_session(
             project_state=proj_state,
             user_id=user_id,
@@ -110,20 +107,16 @@ async def on_exit(request: gr.Request):
             total_tokens=proj_state.current_cycle_tokens,
         )
         
-        # 2. Usklađujemo listu u memoriji (session_log)
-        # Prolazimo kroz listu i zamenjujemo staru sesiju sa ovom ažuriranom iz baze
         if proj_state.session_log:
             for i, old_entry in enumerate(proj_state.session_log):
                 if old_entry.workSessionId == session_id:
                     proj_state.session_log[i] = updated_session_entry
                     break
-        
-        # 3. Istresamo sve ostale izmene (npr. ako je bilo izmena u vision_doc ili feature_log)
+
         await storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
         
     except VibeGuardError:
         pass
-
 
 async def on_drift_check(history, session):
     last_send = _drift_vars["last_send"]

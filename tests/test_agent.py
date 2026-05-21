@@ -3,11 +3,6 @@ from unittest.mock import MagicMock, AsyncMock
 from agent.loop import detect_scoping_complete
 from utils.exceptions import ModelTimeout, RateLimitReached
 
-# ════════════════════════════════════════════════════════════════
-# 1. RESPONSE PARSING TESTS
-# These test _detect_scoping_complete() directly.
-# ════════════════════════════════════════════════════════════════
-
 class TestDetectScopingComplete:
 
     def test_returns_true_when_token_present(self):
@@ -44,13 +39,6 @@ class TestDetectScopingComplete:
         result = detect_scoping_complete(response)
         assert result is False
 
-
-# ════════════════════════════════════════════════════════════════
-# 2. STATE MACHINE TESTS
-# These test that run_agent() switches phases correctly.
-# We mock the LLM call so no real API request is made.
-# ════════════════════════════════════════════════════════════════
-
 PHASE_SCOPING  = "scoping"
 PHASE_GUARDIAN = "guardian"
 
@@ -84,7 +72,6 @@ async def run_agent_stub(agent_graph, user_message: str, session: AgentSession):
 
     result = await agent_graph.ainvoke(input_state)
 
-    # sync updated state back to session — this is what we are testing
     session.phase         = result["phase"]
     session.project_state = result["project_state"]
 
@@ -213,13 +200,6 @@ class TestRunAgentStateMachine:
 
         assert updated_session.project_state is new_project_state
 
-
-# ════════════════════════════════════════════════════════════════
-# 3. NETWORK RESILIENCE TESTS
-# These test that run_conversation_turn() retries exactly 3 times
-# before raising an exception on network failure.
-# ════════════════════════════════════════════════════════════════
-
 class ModelTimeout(Exception):
     pass
  
@@ -246,7 +226,7 @@ async def run_conversation_turn(call_fn, retries: int = 3):
             return call_fn()
         except (RateLimitError, APITimeoutError, APIConnectionError) as e:
             if attempt < retries - 1:
-                pass  # real code does backoff here — skipped in tests
+                pass 
             else:
                 if isinstance(e, RateLimitError):
                     raise RateLimitReached("Rate limit hit after all retries.") from e

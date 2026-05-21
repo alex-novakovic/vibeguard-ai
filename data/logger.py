@@ -26,7 +26,6 @@ class Logger(LoggerBackend):
         if not user_id:
             raise ValueError("user_id cannot be empty")
 
-        # 2. Kreiramo instancu našeg modela
         log_entry = LLMCallLog(
             timestamp=get_time(),
             function_name=function_name,
@@ -36,6 +35,5 @@ class Logger(LoggerBackend):
             user_id=user_id
         )
         
-        # 3. Asinhrono ga "bacamo" u MongoDB kao poseban JSON dokument
         await log_entry.insert()
 

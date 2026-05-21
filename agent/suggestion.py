@@ -29,17 +29,14 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             "tokens":       0
         }
 
-    # identify completed features
     completed_ids = {fid for fid, f in features.items() if f.status == "complete"}
 
-    # filter ready tasks
     ready_tasks = []
     for item in vision.backlog:
         if item.id in completed_ids:
             print(f"Skipping {item.id} (already complete)")
             continue
 
-        # all dependencies must be complete for this task to be ready
         deps_met = all(
             features[dep_id].status == "complete" if dep_id in features else False
             for dep_id in item.dependencies
@@ -64,27 +61,17 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             "reason": "All features are complete or blocked by dependencies."
         }
 
-    # build single context dict matching {context} in prompt
     context = {
-    # from VisionDoc
     "projectName": vision.projectName,
     "visionStatement": vision.visionStatement,
     "successCriteria": vision.successCriteria,
     "experienceLevel": vision.experienceLevel,
     "availableTimeHours": vision.availableTimeHours,
     "constraints": vision.constraints,
-    
-    # calculated
     "remaining_budget_minutes": calculate_remaining_minutes(vision, log),
-    
-    # from feature log — critical for dependency checking
-    
     "completed_features": [fid for fid, f in features.items() if f.status == "complete"],
     "in_progress_features": [fid for fid, f in features.items() if f.status == "in_progress"],
-
     "available_to_start_now": [t["id"] for t in ready_tasks],
-    
-    # backlog with full detail
     "backlog": [
     {
         **item.model_dump(),
@@ -114,7 +101,6 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
         raw = response.choices[0].message.content
         logger.debug(f"AI Suggestion Response: {raw}")
         
-        # 2. Parse the JSON and inject the token count
         result = json.loads(raw)
         result["tokens"] = token_count
         

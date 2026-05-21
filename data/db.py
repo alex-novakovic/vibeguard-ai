@@ -17,4 +17,3 @@ async def init_db():
         database=_client.vibeguard,
         document_models=[VisionDoc, FeatureLogItem, SessionEntry, LLMCallLog]
     )
-    print("--- Konekcija USPEŠNA! ---")

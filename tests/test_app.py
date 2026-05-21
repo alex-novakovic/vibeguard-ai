@@ -13,9 +13,6 @@ from utils.exceptions import (
     EmptyResponse,
 )
 
-
-# ── helpers ───────────────────────────────────────────────────────────────────
-
 def _mock_state():
     state = ProjectState()
     state.session_log = []
@@ -37,9 +34,6 @@ def _mock_request():
     req = MagicMock()
     req.session_hash = "test-hash"
     return req
-
-
-# ── on_startup: error handling ────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_on_startup_parsing_failed_returns_readable_message():
@@ -87,8 +81,6 @@ async def test_on_startup_error_returns_new_status():
         assert result[5] == "new"
 
 
-# ── on_startup: success ───────────────────────────────────────────────────────
-
 @pytest.mark.asyncio
 async def test_on_startup_new_project_returns_welcome_message():
     mock_state = _mock_state()
@@ -130,9 +122,6 @@ async def test_on_startup_existing_project_returns_existing_status():
          patch("app.storage.start_session", new_callable=AsyncMock, return_value=_mock_session_entry()):
         result = await on_startup("user-1", _mock_request())
         assert result[5] == "existing"
-
-
-# ── on_send: error handling ───────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_on_send_rate_limit_returns_readable_message():

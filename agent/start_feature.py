@@ -15,11 +15,7 @@ async def extract_feature_id_from_msg(
     and a slice of history.
     """
     
-    # filter out completed, build short list for the LLM
     short_log = [{"id": f.feature_id, "name": f.name} for f in feature_log if f.status != "complete"]
-
-    # 2. Slice the history to exactly 10
-    # recent_history = history[-10:] if history else []
     active_feature_id = next((f.feature_id for f in feature_log if f.status == "in_progress"), None)
 
     active_feature_info = (
