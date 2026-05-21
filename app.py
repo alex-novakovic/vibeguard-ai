@@ -76,9 +76,9 @@ def on_startup(user_id, request: gr.Request):
 def token_check(session):
     print("Udje u token_check")
     print("feature:", session.feature_tokens, "session:", session.project_state.current_cycle_tokens)
-    if session.feature_tokens > 500:
+    if session.feature_tokens > 50000:
         gr.Warning("This feature has surpassed 50,000 tokens — you've gone back and forth too many times. Wrap it up and move on.")
-    if session.project_state and session.project_state.current_cycle_tokens > 10000:
+    if session.project_state and session.project_state.current_cycle_tokens > 100000:
         gr.Warning("This session has surpassed 100,000 tokens total. Consider finishing up your current feature and taking a break.")
 
 
