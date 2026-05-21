@@ -1,4 +1,4 @@
-from utils.common import now
+from utils.common import get_time
 import os
 from interfaces import LoggerBackend
 from data.schemas import LLMCallLog
@@ -28,7 +28,7 @@ class Logger(LoggerBackend):
 
         # 2. Kreiramo instancu našeg modela
         log_entry = LLMCallLog(
-            timestamp=now(),
+            timestamp=get_time(),
             function_name=function_name,
             prompt=prompt,
             response=response,

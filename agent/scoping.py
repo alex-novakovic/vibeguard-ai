@@ -2,9 +2,10 @@ import json
 import random
 import logging
 import asyncio
-from utils.common import now
+from utils.common import get_time
 from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
+from pydantic import ValidationError
 from utils.exceptions import (
     DatabaseError,
     RateLimitReached, 
@@ -126,7 +127,7 @@ class ScopingSession:
                     raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
                 vision_doc = json.loads(raw)
-                vision_doc["createdAt"] = now()
+                vision_doc["createdAt"] = get_time()
                 vision_doc["user_id"] = user_id
 
                 # fill missing descriptions before Pydantic validation
@@ -148,6 +149,9 @@ class ScopingSession:
                     await asyncio.sleep(2)
                 else:
                     raise ParsingFailed("Failed to parse valid vision doc JSON.")
+            except ValidationError as e:
+                logger.error(f"VisionDoc validation failed: {e}")
+                raise ParsingFailed("AI returned a vision doc with invalid field values.") from e
             except Exception as e:
                 logger.exception("Unexpected error during scoping session")
                 raise

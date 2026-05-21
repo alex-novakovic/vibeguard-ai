@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Literal
 from datetime import datetime, timezone
 from beanie import Document
@@ -15,6 +15,13 @@ class BacklogItem(BaseModel):
     dependencies: List[str]
     confidence: Literal["high", "low"]
     scopeFlag: bool
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def normalize_confidence(cls, v):
+        if v not in ("high", "low"):
+            return "low"
+        return v
     scopeFlagReason: Optional[str] = None
 
 class CycleItem(BaseModel):
@@ -75,7 +82,7 @@ class SessionEntry(Document):
         indexes = ["user_id", "workSessionId"]
 
 class LLMCallLog(Document):
-    timestamp: str
+    timestamp: datetime
     function_name: str
     prompt: str | List[dict]  # Allow both raw string prompts and structured chat messages
     response: str

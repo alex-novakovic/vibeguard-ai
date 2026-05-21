@@ -2,7 +2,8 @@ from data.schemas import VisionDoc, FeatureLogItem, SessionEntry, CycleItem
 from data.state import ProjectState
 from interfaces import StorageBackend
 from typing import List, Optional
-from utils.common import now, now_dt
+from utils.common import get_time
+from datetime import timezone
 import uuid
 
 from utils.exceptions import (
@@ -76,7 +77,7 @@ class Storage(StorageBackend):
         except Exception as e:
             raise MissingFeatureId(f"Feature '{feature_id}' not found for user {user_id}.")
 
-        timestamp = now()
+        timestamp = get_time()
 
         # 2. Menjamo podatke unutar tog dokumenta (sada preko čistih Pydantic modela)
         if event == "start":
@@ -114,7 +115,7 @@ class Storage(StorageBackend):
         new_session = SessionEntry(
             user_id=user_id,
             workSessionId=str(uuid.uuid4()),
-            startTime=now_dt()
+            startTime=get_time()
         )
         await new_session.insert()
         return new_session
@@ -139,7 +140,9 @@ class Storage(StorageBackend):
         drift_count = sum(len(f.cycle.drift_events) for f in project_state.feature_log if f.cycle)
         
         start = session.startTime
-        end = now_dt()
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        end = get_time()
         duration = int((end - start).total_seconds() / 60)
         session.endTime = end
         session.featureCyclesCompleted = completed

@@ -1,6 +1,7 @@
 import gradio as gr
 import uuid
 import time
+import json
 from agent.agent_session import AgentSession, PHASE_GUARDIAN
 from agent.loop import Agent
 from interfaces import StorageBackend, AgentFunctions
@@ -27,8 +28,9 @@ WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What a
 async def on_startup(user_id, request: gr.Request): 
 
     if not user_id:
-        user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
-        #user_id = str(uuid.uuid4())
+        # user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
+        user_id = str(uuid.uuid4())
+        print(user_id)
 
     try:
         await init_db()
@@ -70,8 +72,8 @@ async def on_startup(user_id, request: gr.Request):
             user_id,
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
             state.vision_doc.model_dump(),
-            state.feature_log,
-            state.session_log,
+            [json.loads(item.model_dump_json()) for item in state.feature_log],
+            [json.loads(item.model_dump_json()) for item in state.session_log],
             status,
             session,
             True  # ← initialized_state = True, skip initialize_feature_log entirely
@@ -81,7 +83,7 @@ async def on_startup(user_id, request: gr.Request):
         [{"role": "assistant", "content": WELCOME}],
         None,
         None,
-        state.session_log,  # Ovo će biti None za novi projekat, ali je važno da se vrati kao None, a ne kao prazan niz
+        [json.loads(item.model_dump_json()) for item in state.session_log] if state.session_log else None,  # Ovo će biti None za novi projekat, ali je važno da se vrati kao None, a ne kao prazan niz
         status,
         session,
         False  # ← initialized_state = False, will initialize on first send
@@ -194,16 +196,16 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
             _drift_vars["last_send"] = time.time()
             _drift_vars["status"] = "existing"
             await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
-            return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), True, "existing", session, gr.update()
+            return history, history, "", proj_state.vision_doc.model_dump(), [json.loads(item.model_dump_json()) for item in proj_state.feature_log], gr.update(), True, "existing", session, gr.update()
 
         user_id = session.user_id
         if prev is None and active is not None:
             proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "start", proj_state.vision_doc, None, None)
         elif prev == active:
             if session.drift_note is not None and session.alignment_note is not None:
-               proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
-               session.alignment_note = None
-               session.drift_note = None
+                proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
+                session.alignment_note = None
+                session.drift_note = None
             elif session.alignment_note is not None:
                 proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, None)
                 session.alignment_note = None
@@ -211,14 +213,13 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
                 proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, None, session.drift_note)
                 session.drift_note = None
         elif prev is not None and active is None:
-            print(session.alignment_note)
             proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
             session.alignment_note = None
             
         _session_states[request.session_hash]["agent_session"] = session
         _drift_vars["last_send"] = time.time()
         await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
-        return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), initialized, status, session, gr.update()
+        return history, history, "", proj_state.vision_doc.model_dump(), [json.loads(item.model_dump_json()) for item in proj_state.feature_log], gr.update(), initialized, status, session, gr.update()
 
     _drift_vars["last_send"] = time.time()
     await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
@@ -309,5 +310,5 @@ with gr.Blocks(title="VibeGuard AI") as demo:
 
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(theme=gr.themes.Soft(), share=False, js=_DRIFT_JS)
+    demo.launch(theme=gr.themes.Soft(), share=True, js=_DRIFT_JS)
 
