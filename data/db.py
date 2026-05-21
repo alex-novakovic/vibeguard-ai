@@ -10,8 +10,8 @@ _client = None
 
 async def init_db():
     global _client
-    mongo_uri = os.getenv("MONGODB_URI")
-    _client = AsyncMongoClient(mongo_uri)
+    mongo_uri = os.getenv("MONGODB_URL")
+    _client = AsyncMongoClient(mongo_uri,  tlsAllowInvalidCertificates=True)
     
     await init_beanie(
         database=_client.vibeguard,

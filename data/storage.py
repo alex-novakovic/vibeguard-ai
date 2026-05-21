@@ -1,4 +1,4 @@
-from data.schemas import VisionDoc, FeatureLogItem, SessionEntry, CycleItem, DriftItem
+from data.schemas import VisionDoc, FeatureLogItem, SessionEntry, CycleItem
 from data.state import ProjectState
 from interfaces import StorageBackend
 from typing import List, Optional
@@ -25,8 +25,7 @@ class Storage(StorageBackend):
                 feature_id=feature.id,
                 name=feature.name,
                 status="to_do",
-                cycles=[],
-                drift_events=[]
+                cycle=None,
             )
             
 
@@ -82,36 +81,25 @@ class Storage(StorageBackend):
         # 2. Menjamo podatke unutar tog dokumenta (sada preko čistih Pydantic modela)
         if event == "start":
             item.status = "in_progress"
-            item.cycles.append(
-                CycleItem(started_at=timestamp, completed_at=None, alignment_notes=[])
-            )
+            item.cycle = CycleItem(started_at=timestamp)
             if drift_event:
-                item.drift_events.append(
-                    DriftItem(drift_time=timestamp, drift_note=drift_event)
-                )
+                item.cycle.drift_events.append({"timestamp": timestamp, "note": drift_event})
 
         elif event == "in_progress":
-            if not item.cycles:
+            if item.cycle is None:
                 raise EventError(f"Cannot update '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
             if alignment_note is not None:
-                item.cycles[-1].alignment_notes.append(
-                    {"timestamp": timestamp, "note": alignment_note}
-                )
+                item.cycle.alignment_notes.append({"timestamp": timestamp, "note": alignment_note})
             if drift_event is not None:
-                item.drift_events.append(
-                    DriftItem(drift_time=timestamp, drift_note=drift_event)
-                )
+                item.cycle.drift_events.append({"timestamp": timestamp, "note": drift_event})
 
         elif event == "complete":
-            if not item.cycles:
+            if item.cycle is None:
                 raise EventError(f"Cannot complete '{feature_id}': no active cycle.")
             item.status = "complete"
-            item.cycles[-1].completed_at = timestamp
+            item.cycle.completed_at = timestamp
             if alignment_note is not None:
-               item.cycles[-1].alignment_notes.append({
-                    "timestamp": timestamp,
-                    "note": alignment_note
-        })
+                item.cycle.alignment_notes.append({"timestamp": timestamp, "note": alignment_note})
   
         if vision_doc is not None and event in ("start", "complete"):
             new_status = "in_progress" if event == "start" else "complete"
@@ -148,7 +136,7 @@ class Storage(StorageBackend):
           #  raise DatabaseError(f"Failed to fetch feature logs from database: {e}") from e
         
         completed = [f.feature_id for f in project_state.feature_log if f.status == "complete"]
-        drift_count = sum(len(f.drift_events) for f in project_state.feature_log)
+        drift_count = sum(len(f.cycle.drift_events) for f in project_state.feature_log if f.cycle)
         
         start = session.startTime
         end = now_dt()

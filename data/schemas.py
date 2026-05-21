@@ -20,12 +20,8 @@ class BacklogItem(BaseModel):
 class CycleItem(BaseModel):
     started_at: datetime
     completed_at: Optional[datetime] = None
-    alignment_notes: List[dict] = []
-    tokens_used: Optional[int] = None
-
-class DriftItem(BaseModel):
-    drift_time: datetime
-    drift_note: Optional[str] = None
+    alignment_notes: List[dict] = []  # {"timestamp": ..., "note": ...}
+    drift_events: List[dict] = []     # {"timestamp": ..., "note": ...}
 
 # --- BEANIE DOKUMENTI (MongoDB Kolekcije) ---
 
@@ -55,8 +51,7 @@ class FeatureLogItem(Document):
     feature_id: str = Field(description="ID from backlog, e.g., F001")
     name: str
     status: Literal["to_do", "in_progress", "complete"]
-    cycles: List[CycleItem]  # start_time, end_time, alignment_note, tokens_used
-    drift_events: List[DriftItem]  # drift_time, drift_note
+    cycle: Optional[CycleItem] = None
 
     class Settings:
         name = "feature_logs"

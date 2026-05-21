@@ -80,11 +80,9 @@ def calculate_remaining_minutes(vision_doc, feature_log) -> int:
     
     spent = 0
     for feature in feature_log:
-        for cycle in feature.cycles:
-            started = cycle.started_at
-            completed = cycle.completed_at
-            if started and completed:
-                delta = completed - started
-                spent += delta.total_seconds() / 60
+        cycle = feature.cycle
+        if cycle and cycle.started_at and cycle.completed_at:
+            delta = cycle.completed_at - cycle.started_at
+            spent += delta.total_seconds() / 60
 
     return max(0, total_budget - int(spent))

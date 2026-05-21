@@ -27,12 +27,12 @@ WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What a
 async def on_startup(user_id, request: gr.Request): 
 
     if not user_id:
-        #user_id = "3d82f33d-a13d-4557-bde1-7a7ff5dd1ef2"
-        user_id = str(uuid.uuid4())
+        user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
+        #user_id = str(uuid.uuid4())
 
     try:
-     await init_db()
-    except DatabaseError as e:
+        await init_db()
+    except Exception as e:
         msg = f"⚠️ Database connection failed: {e}"
         return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
     
@@ -126,7 +126,7 @@ async def on_exit(request: gr.Request):
 async def on_drift_check(history, session):
     last_send = _drift_vars["last_send"]
     status = _drift_vars["status"]
-    if status != "existing" or last_send is None or time.time() - last_send < 20:
+    if status != "existing" or last_send is None or time.time() - last_send < 1800:
         return gr.update(), gr.update(), gr.update(), gr.update()
 
     gr.Warning("Time for check")
@@ -189,28 +189,30 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
         active = proj_state.active_feature_id
 
         if not initialized:
-            proj_state.feature_log = storage.initialize_feature_log(proj_state.vision_doc)
+            proj_state.feature_log = await storage.initialize_feature_log(proj_state.vision_doc)
             _session_states[request.session_hash]["agent_session"] = session
             _drift_vars["last_send"] = time.time()
             _drift_vars["status"] = "existing"
             await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
             return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), True, "existing", session, gr.update()
 
+        user_id = session.user_id
         if prev is None and active is not None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", proj_state.vision_doc, None, None)
+            proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "start", proj_state.vision_doc, None, None)
         elif prev == active:
             if session.drift_note is not None and session.alignment_note is not None:
-               proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
+               proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
                session.alignment_note = None
                session.drift_note = None
             elif session.alignment_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, None)
+                proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, None)
                 session.alignment_note = None
             elif session.drift_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, None, session.drift_note)
+                proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, None, session.drift_note)
                 session.drift_note = None
         elif prev is not None and active is None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
+            print(session.alignment_note)
+            proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
             session.alignment_note = None
             
         _session_states[request.session_hash]["agent_session"] = session
@@ -300,7 +302,7 @@ with gr.Blocks(title="VibeGuard AI") as demo:
         outputs=[user_id_browser, chatbot, vision_display, log_display, session_display, status_state, session_state, initialized_state],
     )
 
-    timer_drift = gr.Timer(10)
+    timer_drift = gr.Timer(60)
     timer_drift.tick(fn=on_drift_check, inputs=[history_state, session_state], outputs=[chatbot, history_state, session_state, drift_fx], trigger_mode="multiple")
 
     demo.unload(on_exit)
