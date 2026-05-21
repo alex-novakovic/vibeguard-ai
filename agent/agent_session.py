@@ -24,6 +24,7 @@ class AgentState(TypedDict):
     drift_context: Dict[str, any]      # {"collected_info": [], "attempts": 0}
     drift_note: str | None   # populated after verdict
     feature_tokens: int
+    struggle_token_threshold: int
 
 class AgentSession:
     """
@@ -46,6 +47,7 @@ class AgentSession:
         self.drift_context: dict = {"collected_info": [], "attempts": 0}
         self.drift_note: str | None = None
         self.feature_tokens: int = 0
+        self.struggle_token_threshold: int = 35000
 
 
 

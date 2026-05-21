@@ -118,6 +118,8 @@ class ScopingSession:
 
                 vision_doc = json.loads(raw)
                 vision_doc["createdAt"] = now()
+                for i, feature in enumerate(vision_doc["backlog"]):
+                    feature["id"] = f"F{str(i + 1).zfill(3)}"
 
                 # fill missing descriptions before Pydantic validation
                 for item in vision_doc.get("backlog", []):

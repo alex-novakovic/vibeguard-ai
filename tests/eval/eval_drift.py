@@ -188,6 +188,7 @@ async def run_eval():
         },
         "total_tokens": total_tokens,
     }
+
     os.makedirs("tests/eval/results", exist_ok=True)
 
     with open("tests/eval/results/drift_eval_results.json", "w") as f:

@@ -85,7 +85,7 @@ async def guardian_node(state: AgentState) -> AgentState:
     elif current_completion_status == "COLLECTING":                      
         completion_res = await handle_completion_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
-    elif current_drift_status == "COLLECTING":                      
+    elif current_drift_status == "COLLECTING":                  
         drift_res = await handle_drift_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state = apply_drift_res(drift_res, state, project_state)
     else:
@@ -125,6 +125,15 @@ async def guardian_node(state: AgentState) -> AgentState:
 
             case _:
                 skill_output = "CHAT: Unrecognized intent."
+
+    struggle_hint = (
+        "NOTE: This developer has used a high number of tokens on this cycle, "
+        "which may indicate they are struggling, stuck, or going in circles. "
+        "Be especially patient, check in on their progress, and offer concrete help to unblock them."
+        "Keep your responses concise and focused to conserve tokens — avoid lengthy explanations unless the user explicitly asks."
+        if state["feature_tokens"] > state["struggle_token_threshold"]
+        else ""
+    )
     
     # 4. Generate Final Response with Context
     # We pass only the last 10 messages for token efficiency
@@ -132,14 +141,17 @@ async def guardian_node(state: AgentState) -> AgentState:
         project_state=project_state,  # change this to project context, because it is expensive this way
         user_msg=user_msg,
         skill_output=skill_output,
-        history=state["messages"]  
+        history=state["messages"],
+        struggle_hint=struggle_hint 
     )
 
     final_response = llm_res["text"]
     skill_tokens += llm_res.get("tokens", 0)
     # add the tokens to the projectstate for overall accounting
-    if not tokens_accounted:
+    if not tokens_accounted and project_state is not None:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
+
     
     state["messages"].append({"role": "assistant", "content": final_response})
 
@@ -238,7 +250,8 @@ class Agent(AgentFunctions):
             "drift_status" : initial_drift_status,
             "drift_context" : initial_drift_context,
             "drift_note":session.drift_note,
-            "feature_tokens":session.feature_tokens
+            "feature_tokens":session.feature_tokens,
+            "struggle_token_threshold": session.struggle_token_threshold
           }
 
         # run the graph

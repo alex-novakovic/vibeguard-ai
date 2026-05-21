@@ -76,7 +76,7 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
         None
     )
 
-    is_enough, evaluation_tokens = await evaluate_context_sufficiency(combined_answers, project_state, active_feature_id)
+    is_enough, evaluation_tokens = await evaluate_context_sufficiency(combined_answers, project_state, active_feature_id, context["attempts"])
     tokens_used += evaluation_tokens
 
     if not is_enough and context["attempts"] < 3:
@@ -155,7 +155,8 @@ def get_alignment_context(vision: VisionDoc) -> str:
 async def evaluate_context_sufficiency(
     gathered_text: str, 
     project_state: ProjectState, 
-    active_feature_id: str | None = None
+    active_feature_id: str | None = None,
+    attempts: int = 1 
 ) -> tuple[bool, int]:
     """Asks the LLM if the user has provided enough concrete technical details compared to the target task description."""
     
@@ -167,6 +168,15 @@ async def evaluate_context_sufficiency(
             f_name = getattr(target_feature, "name", "Unknown")
             f_desc = getattr(target_feature, "description", "No description provided.")
             task_context = f"Feature: {f_name}\nDescription/Requirements: {f_desc}"
+
+    leniency_note = ""
+    if attempts >= 2:
+        leniency_note = (
+            f"\n\nNOTE: The developer has already answered {attempts} time(s). "
+            "Apply a more lenient standard. If ANY technical detail is present — "
+            "a tool name, a symptom, an outcome, a file, an action — return YES. "
+            "Do not ask for more detail if there is any sign of progress."
+        )
 
     # 2. Inject this task target into the prompt
     prompt = f"""
@@ -206,6 +216,7 @@ async def evaluate_context_sufficiency(
     - "I connected to the API and the data shows up on screen" → YES (outcome described)
     - "I worked on the dashboard instead" → NO (wrong feature)
     - "I tried but kept getting errors" → NO (not complete)
+    {leniency_note}
 
     Respond with EXACTLY 'YES' or 'NO'. No punctuation, no explanation.
     """
@@ -246,6 +257,7 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
     # Path 2: aligned — mark complete
     if next_status == "IDLE" and completion_res.get("is_aligned") is True:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
 
         state["logger"].log_llm_call(
         function_name="feature_completed",
@@ -257,13 +269,13 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
         
         project_state.previous_feature_id = project_state.active_feature_id
         project_state.active_feature_id = None
-        project_state.current_cycle_tokens += state["feature_tokens"]
         state["feature_tokens"] = 0
         tokens_accounted = True
 
     # Path 3: not aligned — reopen the feature so it stays in_progress
     elif next_status == "IDLE" and completion_res.get("is_aligned") is False:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
 
         state["logger"].log_llm_call(
         function_name="feature_not_completed",

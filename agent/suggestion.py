@@ -42,7 +42,6 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
     ready_tasks = []
     for item in vision.backlog:
         if item.id in completed_ids:
-            print(f"Skipping {item.id} (already complete)" )
             continue
 
         # all dependencies must be complete for this task to be ready
