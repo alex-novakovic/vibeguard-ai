@@ -5,7 +5,6 @@ from typing import List, Optional
 from utils.common import get_time
 from datetime import timezone
 import uuid
-
 from utils.exceptions import (
     DatabaseError,
     EventError,
@@ -137,8 +136,7 @@ class Storage(StorageBackend):
 
     async def dump_logs(self, vision_doc: Optional[VisionDoc], feature_log: List[FeatureLogItem], session_log: List[SessionEntry]) -> None:
         """
-        Zamenjuje staro upisivanje u lokalne fajlove na disku.
-        Sada direktno i asinhrono čuva prosleđene Beanie dokumente u MongoDB.
+        Async saving in MongoDB
         """
         try:
             if vision_doc:

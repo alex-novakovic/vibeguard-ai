@@ -3,6 +3,7 @@ from typing import Literal
 from langgraph.graph import StateGraph, END
 from pydantic import json
 from data.state import ProjectState
+from data.schemas import VisionDoc
 from agent.agent_session import AgentSession, AgentState, PHASE_GUARDIAN, PHASE_SCOPING
 from interfaces import AgentFunctions
 from agent.suggestion import suggest_next_task
@@ -23,8 +24,7 @@ async def scoping_node(state: AgentState) -> AgentState:
 async def finish_scoping_node(state: AgentState) -> AgentState:
     """Called once when scoping is complete — parses vision doc."""
     scoping = state["scoping"]
-    vision_doc = await scoping.scoping_session(user_id=state["user_id"])
-
+    vision_doc = VisionDoc(**( await scoping.scoping_session(user_id=state["user_id"])).model_dump())
 
     project_state = ProjectState(
         vision_doc=vision_doc,
@@ -133,6 +133,7 @@ async def guardian_node(state: AgentState) -> AgentState:
     skill_tokens += llm_res.get("tokens", 0)
     if not tokens_accounted:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
     
     state["messages"].append({"role": "assistant", "content": final_response})
 

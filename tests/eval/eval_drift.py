@@ -3,7 +3,7 @@ import asyncio
 import os
 from types import SimpleNamespace
 from data.db import init_db
-from data.schemas import VisionDoc, BacklogItem
+from data.schemas import VisionDocData, BacklogItem
 from data.state import ProjectState
 from agent.drift import check_drift, evaluate_drift_context_sufficiency
 
@@ -35,7 +35,7 @@ def build_project_state_for_drift(case: dict) -> tuple[ProjectState, str]:
         scopeFlag=False,
     )
 
-    vision_doc = VisionDoc(
+    vision_doc = VisionDocData(
         user_id="eval-user",
         createdAt="2026-01-01T00:00:00+00:00",
         projectName="EvalProject",

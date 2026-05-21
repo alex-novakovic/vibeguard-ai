@@ -243,6 +243,7 @@ async def apply_completion_res(completion_res: dict, state: AgentState, project_
     # Path 2: aligned — mark complete
     if next_status == "IDLE" and completion_res.get("is_aligned") is True:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
 
         await state["logger"].log_llm_call(
         function_name="feature_completed",
@@ -260,6 +261,7 @@ async def apply_completion_res(completion_res: dict, state: AgentState, project_
 
     elif next_status == "IDLE" and completion_res.get("is_aligned") is False:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
 
         await state["logger"].log_llm_call(
         function_name="feature_not_completed",

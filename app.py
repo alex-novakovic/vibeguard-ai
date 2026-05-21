@@ -2,6 +2,7 @@ import gradio as gr
 import uuid
 import time
 import json
+import re
 from agent.agent_session import AgentSession, PHASE_GUARDIAN
 from agent.loop import Agent
 from interfaces import StorageBackend, AgentFunctions
@@ -24,12 +25,16 @@ _drift_vars: dict = {"last_send": None, "status": "new"}
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
+def _sanitize(text: str) -> str:
+    """Strip EOS tokens and HTML closing tags that break Gradio's SSE parser."""
+    return re.sub(r"</\w+>", "", text).strip()
+
 
 async def on_startup(user_id, request: gr.Request): 
 
     if not user_id:
-        # user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
-        user_id = str(uuid.uuid4())
+        user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
+        #user_id = str(uuid.uuid4())
         print(user_id)
 
     try:
@@ -87,6 +92,13 @@ async def on_startup(user_id, request: gr.Request):
         False  # ← initialized_state = False, will initialize on first send
     )
 
+def token_check(session):
+    print("Udje u token_check")
+    print("feature:", session.feature_tokens, "session:", session.project_state.current_cycle_tokens)
+    if session.feature_tokens > 50000:
+        gr.Warning("This feature has surpassed 50,000 tokens — you've gone back and forth too many times. Wrap it up and move on.")
+    if session.project_state and session.project_state.current_cycle_tokens > 100000:
+        gr.Warning("This session has surpassed 100,000 tokens total. Consider finishing up your current feature and taking a break.")
 
 async def on_exit(request: gr.Request):
     entry = _session_states.pop(request.session_hash, None)
@@ -130,6 +142,8 @@ async def on_drift_check(history, session):
 
     try:
         response, session = await agent.run_agent("DRIFT", status, session)
+        response = _sanitize(response)
+        token_check(session)
     except RateLimitReached:
         response = "⚠️ Rate limit reached. Please wait a moment and try again."
     except ModelTimeout:
@@ -163,6 +177,8 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
 
     try:
         response, session = await agent.run_agent(message, status, session)
+        response = _sanitize(response)
+        token_check(session)
     except RateLimitReached:
         return _agent_error("⚠️ Rate limit reached. Please wait a moment and try again.")
     except ModelTimeout:

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from data.schemas import BacklogItem, VisionDoc
+from data.schemas import BacklogItem, VisionDocData
 from data.state import ProjectState
 
 VALID_BACKLOG_ITEM = {
@@ -38,7 +38,7 @@ class TestVisionDocValidation:
         A fully populated dictionary must produce a VisionDoc
         without raising any exception.
         """
-        doc = VisionDoc(**VALID_VISION_DOC)
+        doc = VisionDocData(**VALID_VISION_DOC)
         assert doc.projectName == "VibeGuard"
 
     def test_missing_project_name_raises(self):
@@ -47,7 +47,7 @@ class TestVisionDocValidation:
         """
         bad = {k: v for k, v in VALID_VISION_DOC.items() if k != "projectName"}
         with pytest.raises(ValidationError):
-            VisionDoc(**bad)
+            VisionDocData(**bad)
 
     def test_missing_vision_statement_raises(self):
         """
@@ -55,7 +55,7 @@ class TestVisionDocValidation:
         """
         bad = {k: v for k, v in VALID_VISION_DOC.items() if k != "visionStatement"}
         with pytest.raises(ValidationError):
-            VisionDoc(**bad)
+            VisionDocData(**bad)
 
     def test_missing_backlog_raises(self):
         """
@@ -63,14 +63,14 @@ class TestVisionDocValidation:
         """
         bad = {k: v for k, v in VALID_VISION_DOC.items() if k != "backlog"}
         with pytest.raises(ValidationError):
-            VisionDoc(**bad)
+            VisionDocData(**bad)
 
     def test_optional_fields_default_to_none(self):
         """
         availableTime, experienceLevel, and constraints are optional.
         When omitted they must default to None, not raise.
         """
-        doc = VisionDoc(**VALID_VISION_DOC)
+        doc = VisionDocData(**VALID_VISION_DOC)
         assert doc.availableTime is None
         assert doc.constraints is None
         assert doc.experienceLevel is None
@@ -126,7 +126,7 @@ class TestVisionDocEnforcement:
         """
         bad = {**VALID_VISION_DOC, "techStack": "Python"}
         with pytest.raises(ValidationError):
-            VisionDoc(**bad)
+            VisionDocData(**bad)
 
     def test_backlog_as_string_raises(self):
         """
@@ -135,7 +135,7 @@ class TestVisionDocEnforcement:
         """
         bad = {**VALID_VISION_DOC, "backlog": "some feature"}
         with pytest.raises(ValidationError):
-            VisionDoc(**bad)
+            VisionDocData(**bad)
 
     def test_available_time_hours_as_string_raises(self):
         """
@@ -144,7 +144,7 @@ class TestVisionDocEnforcement:
         """
         bad = {**VALID_VISION_DOC, "availableTimeHours": "forty"}
         with pytest.raises(ValidationError):
-            VisionDoc(**bad)
+            VisionDocData(**bad)
 
 class TestProjectStateInit:
 
@@ -165,7 +165,7 @@ class TestProjectStateInit:
         When a VisionDoc is passed, state.vision_doc must reference
         the same object with all its fields intact.
         """
-        doc = VisionDoc(**VALID_VISION_DOC)
+        doc = VisionDocData(**VALID_VISION_DOC)
         state = ProjectState(vision_doc=doc)
         assert state.vision_doc is doc
         assert state.vision_doc.projectName == "VibeGuard"
@@ -184,7 +184,7 @@ class TestProjectStateInit:
         Even when vision_doc and feature_log are provided, the token
         counter must still start at 0.
         """
-        doc = VisionDoc(**VALID_VISION_DOC)
+        doc = VisionDocData(**VALID_VISION_DOC)
         state = ProjectState(vision_doc=doc)
         assert state.current_cycle_tokens == 0
 
@@ -193,7 +193,7 @@ class TestProjectStateInit:
         A newly created state has no active or previous feature —
         both must be None regardless of what data was passed in.
         """
-        doc = VisionDoc(**VALID_VISION_DOC)
+        doc = VisionDocData(**VALID_VISION_DOC)
         state = ProjectState(vision_doc=doc)
         assert state.active_feature_id is None
         assert state.previous_feature_id is None

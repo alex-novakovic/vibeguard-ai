@@ -28,8 +28,8 @@ class CycleItem(BaseModel):
     alignment_notes: List[dict] = []  
     drift_events: List[dict] = []     
 
-class VisionDoc(Document):
-    user_id: str = Field(index=True)
+class VisionDocData(BaseModel):
+    user_id: str
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     projectName: str
     visionStatement: str
@@ -45,6 +45,7 @@ class VisionDoc(Document):
     niceToHave: List[str]
     backlog: List[BacklogItem]
 
+class VisionDoc(VisionDocData, Document):
     class Settings:
         name = "vision_docs"
         indexes = ["user_id"]

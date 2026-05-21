@@ -2,7 +2,7 @@ import json
 import asyncio
 from types import SimpleNamespace
 from data.db import init_db
-from data.schemas import VisionDoc
+from data.schemas import VisionDocData
 from data.state import ProjectState
 from agent.suggestion import suggest_next_task
 import os
@@ -24,7 +24,7 @@ def build_project_state(case: dict) -> ProjectState:
     raw = case["project_state"]
     vision_raw = raw["vision_doc"]
     vision_raw.setdefault("user_id", "eval-user")
-    vision_doc = VisionDoc(**vision_raw)
+    vision_doc = VisionDocData(**vision_raw)
     feature_log = _dict_to_feature_log(raw["feature_log"])
     return ProjectState(vision_doc=vision_doc, feature_log=feature_log)
 

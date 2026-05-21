@@ -17,7 +17,7 @@ from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
 from openai import RateLimitError, APIConnectionError, APITimeoutError
 from agent.config import CONVERSATION_MODEL, PARSING_MODEL, client
 from utils.exceptions import RateLimitReached, ModelTimeout, ParsingFailed, EmptyResponse
-from data.schemas import VisionDoc
+from data.schemas import VisionDocData
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
 from datetime import datetime, timezone
 
@@ -94,7 +94,7 @@ class ScopingSession:
                         raise RateLimitReached("Rate limit hit after all retries.") from e
                     raise ModelTimeout("Model timed out after all retries.") from e
 
-    async def scoping_session(self, user_id: str) -> VisionDoc:
+    async def scoping_session(self, user_id: str) -> VisionDocData:
         transcript = self.get_transcript()
         filled_prompt = PARSING_PROMPT.replace("{transcript}", transcript)
 
@@ -135,7 +135,7 @@ class ScopingSession:
                     if not item.get("description"):
                         item["description"] = item.get("name", "No description provided.")
 
-                return VisionDoc(**vision_doc)
+                return VisionDocData(**vision_doc)
                 
             except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:

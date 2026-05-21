@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from data.db import init_db
 from agent.complete import vision_alignment_check, evaluate_context_sufficiency
 from data.state import ProjectState
-from data.schemas import VisionDoc, BacklogItem
+from data.schemas import VisionDocData, BacklogItem
 
 
 def load_test_cases():
@@ -71,7 +71,7 @@ async def run_sufficiency_eval(sufficiency_cases):
             scopeFlag=False,
             scopeFlagReason=None,
         )
-        mock_vision = VisionDoc(
+        mock_vision = VisionDocData(
             user_id="eval-user",
             createdAt="2026-01-01T00:00:00Z",
             projectName="TestProject",
