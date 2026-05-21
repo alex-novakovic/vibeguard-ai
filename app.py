@@ -178,7 +178,9 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
 
         if prev is None and active is not None:
             proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", proj_state.vision_doc, None, None)
-        elif prev == active:
+            session.drift_note = None      # ← clear any stale notes from previous cycle
+            session.alignment_note = None  
+        elif prev == active and active is not None:
             if session.drift_note is not None and session.alignment_note is not None:
                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
                session.alignment_note = None
@@ -192,6 +194,7 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
         elif prev is not None and active is None:
             proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
             session.alignment_note = None
+            proj_state.previous_feature_id = None
             
         _session_states[request.session_hash]["agent_session"] = session
         _drift_vars["last_send"] = time.time()

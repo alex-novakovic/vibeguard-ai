@@ -85,7 +85,7 @@ async def guardian_node(state: AgentState) -> AgentState:
     elif current_completion_status == "COLLECTING":                      
         completion_res = await handle_completion_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state, tokens_accounted = apply_completion_res(completion_res, state, project_state, skill_tokens)
-    elif current_drift_status == "COLLECTING":                     
+    elif current_drift_status == "COLLECTING":                  
         drift_res = await handle_drift_flow(state, user_msg, project_state)
         skill_output, skill_tokens, state = apply_drift_res(drift_res, state, project_state)
     else:

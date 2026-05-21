@@ -75,8 +75,11 @@ CRITICAL RULES — follow all of them without exception:
 - All priority values must be exactly one of:
   "critical", "high", "medium", "low"
 - All confidence values must be exactly "high" or "low"
-- Feature IDs must follow the format F001, F002, F003
-  zero-padded to 3 digits
+- Feature IDs MUST follow EXACTLY this format: F001, F002, F003, F004...
+  Zero-padded to 3 digits. NO other format is acceptable.
+  ❌ WRONG: "feat-01", "feature-1", "f001", "F1", "F-001"
+  ✅ CORRECT: "F001", "F002", "F003"
+  The first feature is always "F001", second is "F002", and so on sequentially.
 - estimatedMinutes must be an integer, never a string
 - dependencies array contains feature IDs (e.g. ["F001"])
   or is empty []
