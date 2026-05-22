@@ -34,15 +34,15 @@ def _sanitize(text: str) -> str:
 async def on_startup(user_id, request: gr.Request): 
 
     if not user_id:
-        user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
-        #user_id = str(uuid.uuid4())
+        # user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
+        user_id = str(uuid.uuid4())
         print(user_id)
 
     try:
         await init_db()
     except Exception as e:
         msg = f"⚠️ Database connection failed: {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, "new", None, AgentSession()
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
     
      # first visit — generate once, stored in browser
     try:
@@ -56,13 +56,13 @@ async def on_startup(user_id, request: gr.Request):
         _session_states[request.session_hash]["session_id"] = session_id
     except ParsingFailed as e:
         msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession()
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
     except DatabaseError as e:
         msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession()
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
     except VibeGuardError as e:
         msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession()
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
 
     session.project_state = state
     _session_states[request.session_hash]["agent_session"] = session
