@@ -1,8 +1,9 @@
 .env
 data/logs/
 
+venv/
+.venv/
 **/__pycache__
-
+.pytest_cache/
 .gradio
-
 tests/eval/results/

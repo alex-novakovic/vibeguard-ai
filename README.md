@@ -12,7 +12,7 @@ The agent operates in two phases:
 
 **1. Scoping** — A multi-turn conversation guided by Gemini 2.0 Flash extracts your vision, time budget, experience level, tech stack, and feature list. When all fields are confirmed, a second LLM call (Claude 3 Haiku) parses the transcript into a validated `VisionDoc` JSON document.
 
-**2. Guardian** — Once scoping is complete, the agent tracks feature progress, detects when you drift from your original plan, and suggests the next task to work on.
+**2. Guardian** — Once scoping is complete, the agent tracks feature progress, detects drift from your original plan, suggests the next task, and warns when token usage per feature or session exceeds healthy thresholds.
 
 ---
 
@@ -49,11 +49,13 @@ Create a `.env` file in the project root (it is gitignored and must never be com
 
 ```
 OPENROUTER_API_KEY=your_openrouter_key_here
+MONGODB_URL=your_mongodb_connection_string_here
 CONVERSATION_MODEL=google/gemini-2.0-flash-lite-001
 PARSING_MODEL=anthropic/claude-3-haiku
 ```
 
-Get your API key from [openrouter.ai/keys](https://openrouter.ai/keys).  
+Get your OpenRouter API key from [openrouter.ai/keys](https://openrouter.ai/keys).  
+Get your MongoDB connection string from [mongodb.com/atlas](https://www.mongodb.com/atlas) (free tier works).  
 `CONVERSATION_MODEL` and `PARSING_MODEL` are optional — the values above are the defaults.
 
 ### 5. Run the app
@@ -69,7 +71,7 @@ The Gradio interface will open at `http://localhost:7860`.
 ## Project structure
 
 ```
-vibeguard-refactor/
+vibeguard-ai/
 ├── app.py                        # Gradio UI and event handlers
 ├── interfaces.py                 # Abstract base classes (StorageBackend, AgentFunctions, LoggerBackend)
 ├── requirements.txt
@@ -77,35 +79,47 @@ vibeguard-refactor/
 ├── agent/
 │   ├── loop.py                   # LangGraph graph definition and Agent class
 │   ├── agent_session.py          # Per-user session state
+│   ├── agent_utils.py            # classify_guardian_intent, generate_guardian_response
+│   ├── config.py                 # OpenRouter client, logger, model constants
 │   ├── scoping.py                # ScopingSession: conversation loop + transcript parsing
-│   ├── alignment.py              # (in progress) alignment checking
-│   ├── drift.py                  # (in progress) drift detection
-│   ├── suggestion.py             # (in progress) next-task suggestion
+│   ├── drift.py                  # Drift detection flow
+│   ├── complete.py               # Feature completion flow
+│   ├── start_feature.py          # Feature start + feature ID extraction
+│   ├── suggestion.py             # Next-task suggestion
 │   └── prompts/
-│       └── system_prompt.py      # CONVERSATION_PROMPT and PARSING_PROMPT
+│       ├── system_prompt.py      # CONVERSATION_PROMPT and PARSING_PROMPT
+│       ├── guardian_prompt.py    # Guardian system prompt
+│       ├── classify_guardian_intent_prompt.py  # Intent classification prompt
+│       ├── alignment_prompt.py   # Alignment checking prompt
+│       ├── drift_prompt.py       # Drift detection prompt
+│       └── suggestion_prompt.py  # Next-task suggestion prompt
 │
 ├── data/
-│   ├── schemas.py                # Pydantic models: VisionDoc, BacklogItem, SessionLog, etc.
+│   ├── schemas.py                # Pydantic/Beanie models: VisionDoc, FeatureLogItem, SessionEntry, LLMCallLog
 │   ├── state.py                  # ProjectState class
 │   ├── storage.py                # Storage class: load, save, log feature cycles, sessions
-│   ├── logger.py                 # Logger class: appends LLM call records to llm_calls.log
-│   ├── wakatime.py               # (placeholder)
-│   └── logs/                     # Auto-created at runtime (gitignored)
-│       ├── vision_doc.json
-│       ├── feature_log.json
-│       ├── session_log.json
-│       └── llm_calls.log
+│   ├── db.py                     # MongoDB/Beanie initialisation (init_db)
+│   └── logger.py                 # Logger class: inserts LLM call records into MongoDB
 │
 ├── utils/
-│   └── exceptions.py             # Custom exception hierarchy (VibeGuardError and subtypes)
+│   ├── exceptions.py             # Custom exception hierarchy (VibeGuardError and subtypes)
+│   └── common.py                 # Shared helpers (timezone-aware timestamps)
 │
 └── tests/
+    ├── conftest.py               # Shared pytest fixtures
     ├── test_agent.py             # Agent logic: scoping detection, state machine, retries
     ├── test_app.py               # App layer: startup, send, error handling
     ├── test_storage.py           # Data layer: Pydantic validation, ProjectState init
     ├── test_scoping.py           # (empty)
     ├── test_drift.py             # (empty)
-    └── test_integration.py       # (empty)
+    ├── test_integration.py       # (empty)
+    └── eval/
+        ├── eval_scoping.py
+        ├── eval_drift.py
+        ├── eval_alignment.py
+        ├── eval_suggest_next_task.py
+        ├── eval_classify_guardian_intent.py
+        └── eval_extract_feature_from_id.py
 ```
 
 ---
@@ -116,7 +130,8 @@ vibeguard-refactor/
 User (Gradio UI)
        │
        ▼
-  on_startup()  ──►  storage.load_or_create_project()
+  on_startup()  ──►  init_db()
+                      storage.load_or_create_project()
                       storage.start_session()
        │
        ▼
@@ -134,12 +149,20 @@ User (Gradio UI)
                             │               └── finish_scoping_node()
                             │                       Claude Haiku → JSON → VisionDoc (Pydantic)
                             │
-                            └── guardian_node()       (in progress)
+                            └── guardian_node()
+                                    │
+                                    ├── classify_guardian_intent()   SUGGEST | START | COMPLETE | CHAT
+                                    ├── suggest_next_task()
+                                    ├── start_feature()
+                                    ├── handle_completion_flow()     multi-turn completion check
+                                    ├── handle_drift_flow()          periodic drift check (every 30 min)
+                                    └── generate_guardian_response()
        │
        ▼
-  storage.initialize_feature_log()
-  storage.dump_logs()               →  data/logs/*.json
-  Logger.log_llm_call()             →  data/logs/llm_calls.log
+  token_check()                 →  Gradio warning if >50k tokens/feature or >100k tokens/session
+  storage.log_feature_cycle()
+  storage.dump_logs()           →  MongoDB (saves VisionDoc, FeatureLogItem, SessionEntry)
+  Logger.log_llm_call()         →  MongoDB (LLMCallLog collection)
 ```
 
 ### Key design decisions
@@ -147,7 +170,8 @@ User (Gradio UI)
 | Decision | Reason |
 |---|---|
 | LangGraph for orchestration | Explicit, typed state machine — phases are graph nodes, not if/elif chains |
-| Pydantic for all data schemas | Validates LLM output at the boundary; any field error raises before bad data is saved |
+| Pydantic + Beanie for all data schemas | Validates LLM output at the boundary; Beanie provides async MongoDB ODM with zero extra mapping |
+| MongoDB as primary storage | Per-user documents survive restarts and are accessible across deployments |
 | Two-model pipeline | Gemini Flash for fast conversation; Claude Haiku at `temperature=0` for precise JSON extraction |
 | Custom exception hierarchy | All failures map to a `VibeGuardError` subtype — the UI catches these and shows a clean `⚠️` message, never a traceback |
 | Session-scoped state | `AgentSession` is created per user; no global mutable state, safe for concurrent users |
@@ -164,15 +188,15 @@ For async tests to work, `pytest-asyncio` must be installed (included in `requir
 
 ---
 
-## Logs
+## Data storage
 
-All runtime data is written to `data/logs/` (created automatically, gitignored):
+All runtime data is persisted in **MongoDB**:
 
-| File | Contents |
+| Collection | Contents |
 |---|---|
-| `vision_doc.json` | Validated project plan produced after scoping |
-| `feature_log.json` | Per-feature status, work cycles, and drift events |
-| `session_log.json` | Session start/end times, token usage, features completed |
-| `llm_calls.log` | Append-only record of every LLM call with prompt, response, and token count |
+| `VisionDoc` | Validated project plan produced after scoping |
+| `FeatureLogItem` | Per-feature status, work cycles, alignment notes, and drift events |
+| `SessionEntry` | Session start/end times, token usage, features completed |
+| `LLMCallLog` | Record of every LLM call with function name, prompt, response, and token count |
 
-The app auto-saves every 5 minutes and performs a final save when the browser tab is closed.
+The app saves to MongoDB on every message and on tab close (`on_exit`).
