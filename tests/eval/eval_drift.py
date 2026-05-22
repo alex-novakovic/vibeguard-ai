@@ -1,7 +1,9 @@
 import json
 import asyncio
 import os
-from data.schemas import VisionDoc, BacklogItem
+from types import SimpleNamespace
+from data.db import init_db
+from data.schemas import VisionDocData, BacklogItem
 from data.state import ProjectState
 from agent.drift import check_drift, evaluate_drift_context_sufficiency
 
@@ -11,8 +13,14 @@ def load_cases(path: str) -> list:
         return json.load(f)
 
 
+def _dict_to_feature_log(d: dict) -> list:
+    return [
+        SimpleNamespace(feature_id=fid, name=f["name"], status=f["status"], cycle=None)
+        for fid, f in d.get("features", {}).items()
+    ]
+
+
 def build_project_state_for_drift(case: dict) -> tuple[ProjectState, str]:
-    """Builds a minimal ProjectState and active_feature_id from a sufficiency test case."""
     active_feature_id = case["active_feature_id"]
 
     backlog_item = BacklogItem(
@@ -27,7 +35,8 @@ def build_project_state_for_drift(case: dict) -> tuple[ProjectState, str]:
         scopeFlag=False,
     )
 
-    vision_doc = VisionDoc(
+    vision_doc = VisionDocData(
+        user_id="eval-user",
         createdAt="2026-01-01T00:00:00+00:00",
         projectName="EvalProject",
         visionStatement="Eval project",
@@ -41,20 +50,11 @@ def build_project_state_for_drift(case: dict) -> tuple[ProjectState, str]:
         backlog=[backlog_item],
     )
 
-    project_state = ProjectState(
-        vision_doc=vision_doc,
-        feature_log={
-            "features": {
-                active_feature_id: {
-                    "name": case["feature_name"],
-                    "status": "in_progress",
-                    "cycles": [],
-                    "drift_events": [],
-                }
-            }
-        },
-    )
+    feature_log = [
+        SimpleNamespace(feature_id=active_feature_id, name=case["feature_name"], status="in_progress", cycle=None)
+    ]
 
+    project_state = ProjectState(vision_doc=vision_doc, feature_log=feature_log)
     return project_state, active_feature_id
 
 
@@ -154,6 +154,7 @@ async def run_drift_sufficiency_eval(cases: list) -> list:
 
 
 async def run_eval():
+    await init_db()
     all_cases = load_cases("tests/eval/data/drift_test_cases.json")
 
     drift_cases = all_cases["drift_test_cases"]

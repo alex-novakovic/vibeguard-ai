@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Literal
+from datetime import datetime, timezone
+from beanie import Document
 
 class BacklogItem(BaseModel):
     id: str
@@ -11,10 +13,24 @@ class BacklogItem(BaseModel):
     dependencies: List[str]
     confidence: Literal["high", "low"]
     scopeFlag: bool
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def normalize_confidence(cls, v):
+        if v not in ("high", "low"):
+            return "low"
+        return v
     scopeFlagReason: Optional[str] = None
 
-class VisionDoc(BaseModel):
-    createdAt: str
+class CycleItem(BaseModel):
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    alignment_notes: List[dict] = []  
+    drift_events: List[dict] = []     
+
+class VisionDocData(BaseModel):
+    user_id: str
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     projectName: str
     visionStatement: str
     targetUser: str
@@ -29,22 +45,46 @@ class VisionDoc(BaseModel):
     niceToHave: List[str]
     backlog: List[BacklogItem]
 
-class FeatureLogItem(BaseModel):
-    model_config = {"frozen": False} #allow mutation for in-place updates
+class VisionDoc(VisionDocData, Document):
+    class Settings:
+        name = "vision_docs"
+        indexes = ["user_id"]
+
+class FeatureLogItem(Document):
+    user_id: str = Field(index=True)
+    feature_id: str = Field(description="ID from backlog, e.g., F001")
     name: str
     status: Literal["to_do", "in_progress", "complete"]
-    cycles: List[dict]  # started_at, completed_at, alignment_notes: [{timestamp, note}]
-    drift_events: List[dict]
+    cycle: Optional[CycleItem] = None
 
-class SessionEntry(BaseModel):
+    class Settings:
+        name = "feature_logs"
+        indexes = [
+            [("user_id", 1), ("feature_id", 1)]
+        ]
+
+class SessionEntry(Document):
+    user_id: str = Field(index=True)
     workSessionId: str
-    startTime: str
-    endTime: Optional[str] = None
+    startTime: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    endTime: Optional[datetime] = None
     featureCyclesCompleted: List[str] = []
     driftEventsCount: int = 0
-    tokensUsed: int = 0 # in session
-    totalTokensUsed: int = 0    # in project
+    tokensUsed: int = 0
+    totalTokensUsed: int = 0
     totalDurationMinutes: int = 0
 
-class SessionLog(BaseModel):
-    sessions: List[SessionEntry] = []
+    class Settings:
+        name = "session_entries"
+        indexes = ["user_id", "workSessionId"]
+
+class LLMCallLog(Document):
+    timestamp: datetime
+    function_name: str
+    prompt: str | List[dict]  
+    response: str
+    tokens: int
+    user_id: str
+
+    class Settings:
+        name = "llm_calls" 

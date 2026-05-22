@@ -30,7 +30,6 @@ async def vision_alignment_check(
     ) + json_instruction
 
     try:
-        # Using asyncio.to_thread to keep the LLM call from blocking your async loop
         response = await client.chat.completions.create (
             model=CONVERSATION_MODEL, # Or a smaller, faster model if preferred
             messages=[{"role": "user", "content": full_prompt}],
@@ -50,7 +49,6 @@ async def vision_alignment_check(
 
     except Exception as e:
         logger.error(f"Vision Alignment Error: {e}")
-        # Default to safe failure: don't mark as complete if the check crashes
         return {
             "is_aligned": False, 
             "feedback": "The alignment check encountered a technical error.",
@@ -72,8 +70,8 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
     tokens_used = 0
 
     active_feature_id = next(
-        (fid for fid, f in project_state.feature_log["features"].items() if f["status"] == "in_progress"),
-        None
+    (f.feature_id for f in project_state.feature_log if f.status == "in_progress"),
+    None
     )
 
     is_enough, evaluation_tokens = await evaluate_context_sufficiency(combined_answers, project_state, active_feature_id)
@@ -93,8 +91,10 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
             "alignment_note": None
         }
 
-    features = project_state.feature_log.get("features", {})
-    active_feat = features.get(active_feature_id)
+    active_feat = next(
+    (f for f in project_state.feature_log if f.feature_id == active_feature_id),
+    None
+)
     backlog_item = next((b for b in project_state.vision_doc.backlog if b.id == active_feature_id), None)
 
     if not active_feat or not backlog_item:
@@ -108,7 +108,7 @@ async def handle_completion_flow(state: AgentState, user_msg: str, project_state
         }
 
     alignment_res = await vision_alignment_check(
-        planned_feature=f"{active_feat.get('name')}: {backlog_item.description}",
+        planned_feature=f"{active_feat.name}: {backlog_item.description}",
         actual_work=combined_answers,
         vision_context=get_alignment_context(project_state.vision_doc)
     )
@@ -159,7 +159,6 @@ async def evaluate_context_sufficiency(
 ) -> tuple[bool, int]:
     """Asks the LLM if the user has provided enough concrete technical details compared to the target task description."""
     
-    # 1. Look up the task description from the backlog if an ID is provided
     task_context = "No specific feature context provided."
     if active_feature_id and hasattr(project_state, "vision_doc") and hasattr(project_state.vision_doc, "backlog"):
         target_feature = next((f for f in project_state.vision_doc.backlog if getattr(f, "id", None) == active_feature_id), None)
@@ -168,7 +167,6 @@ async def evaluate_context_sufficiency(
             f_desc = getattr(target_feature, "description", "No description provided.")
             task_context = f"Feature: {f_name}\nDescription/Requirements: {f_desc}"
 
-    # 2. Inject this task target into the prompt
     prompt = f"""
     You are a technical manager checking if a developer has provided enough information to verify their task is complete.
 
@@ -218,7 +216,6 @@ async def evaluate_context_sufficiency(
         )
         prediction = response.choices[0].message.content.strip().upper()
         
-        # Clean up any accidental formatting the LLM might have returned
         if "YES" in prediction:
             prediction = "YES"
         elif "NO" in prediction:
@@ -228,9 +225,9 @@ async def evaluate_context_sufficiency(
         return (prediction == "YES", tokens)
     except Exception as e:
         logger.error(f"Context sufficiency check failed: {e}")
-        return (True, 0)  # Fallback to true to prevent infinite lock loops on failure
+        return (True, 0)  
     
-def apply_completion_res(completion_res: dict, state: AgentState, project_state: ProjectState, skill_tokens: int):
+async def apply_completion_res(completion_res: dict, state: AgentState, project_state: ProjectState, skill_tokens: int):
     """Unpacks completion flow result and applies state transitions."""
     skill_output = completion_res["skill_output"]
     skill_tokens += completion_res["tokens"]
@@ -246,8 +243,9 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
     # Path 2: aligned — mark complete
     if next_status == "IDLE" and completion_res.get("is_aligned") is True:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
 
-        state["logger"].log_llm_call(
+        await state["logger"].log_llm_call(
         function_name="feature_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],
@@ -261,11 +259,11 @@ def apply_completion_res(completion_res: dict, state: AgentState, project_state:
         state["feature_tokens"] = 0
         tokens_accounted = True
 
-    # Path 3: not aligned — reopen the feature so it stays in_progress
     elif next_status == "IDLE" and completion_res.get("is_aligned") is False:
         state["feature_tokens"] += skill_tokens
+        project_state.current_cycle_tokens += skill_tokens
 
-        state["logger"].log_llm_call(
+        await state["logger"].log_llm_call(
         function_name="feature_not_completed",
         prompt=f"Feature {project_state.active_feature_id} completion check",
         response=state["alignment_note"],

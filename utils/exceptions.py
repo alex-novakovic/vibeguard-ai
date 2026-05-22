@@ -20,8 +20,8 @@ class EmptyResponse(VibeGuardError):
     """Model returned an empty response."""
     pass
 
-class FileSystemError(VibeGuardError):
-    """Failed to write or read from disk."""
+class DatabaseError(VibeGuardError):
+    """Failed to connect or interact with the database."""
     pass
 
 class EventError(VibeGuardError):

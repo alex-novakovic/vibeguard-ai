@@ -1,16 +1,17 @@
-from utils.common import now
+from utils.common import get_time
 import os
 from interfaces import LoggerBackend
+from data.schemas import LLMCallLog
 
 class Logger(LoggerBackend):
 
-    def log_llm_call(
+    async def log_llm_call(
         self,
         function_name: str,
         prompt: str,
         response: str,
         tokens: int,
-        user_id: str=None,
+        user_id: str,
     ) -> None:
         
         # Validate inputs
@@ -24,13 +25,15 @@ class Logger(LoggerBackend):
             raise ValueError(f"tokens must be a positive integer, got {tokens}")
         if not user_id:
             raise ValueError("user_id cannot be empty")
-        
-        os.makedirs("./data/logs", exist_ok=True)
 
-        with open("./data/logs/llm_calls.log", "a") as f:
-            f.write(f"[{now()}] FUNCTION: {function_name}\n")
-            f.write(f"PROMPT: {prompt}\n")
-            f.write(f"RESPONSE: {response}\n")
-            f.write(f"TOKENS: {tokens}\n")
-            f.write(f"USER_ID: {user_id}\n")
-            f.write("---\n")
+        log_entry = LLMCallLog(
+            timestamp=get_time(),
+            function_name=function_name,
+            prompt=prompt,
+            response=response,
+            tokens=tokens,
+            user_id=user_id
+        )
+        
+        await log_entry.insert()
+

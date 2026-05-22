@@ -1,16 +1,12 @@
-import json
-import os
-from datetime import datetime
-from utils.common import now, now_dt
-from pydantic import ValidationError
-from data.schemas import VisionDoc, FeatureLogItem, SessionLog, SessionEntry
+from data.schemas import VisionDoc, FeatureLogItem, SessionEntry, CycleItem
 from data.state import ProjectState
 from interfaces import StorageBackend
+from typing import List, Optional
+from utils.common import get_time
+from datetime import timezone
 import uuid
-
 from utils.exceptions import (
-    FileSystemError,
-    ParsingFailed,
+    DatabaseError,
     EventError,
     MissingFeatureId,
     MissingSessionId
@@ -18,108 +14,82 @@ from utils.exceptions import (
 
 class Storage(StorageBackend):
 
-    def initialize_feature_log(self, vision_doc: VisionDoc) -> dict:
-        feature_log = {
-            "features": {
-                feature.id: {
-                    "name": feature.name,
-                    "status": "to_do",
-                    "cycles": [],
-                    "drift_events": []
-                }
-                for feature in vision_doc.backlog
-            }
-        }
-
-        return feature_log 
-
-    def load_or_create_project(self, user_id: str) -> tuple:   
+    async def initialize_feature_log(self, vision_doc: VisionDoc) -> list:
+        
+        feature_log = []
+        
+        for feature in vision_doc.backlog:
+            log_item = FeatureLogItem(
+                user_id=vision_doc.user_id,
+                feature_id=feature.id,
+                name=feature.name,
+                status="to_do",
+                cycle=None,
+            )
             
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+            feature_log.append(log_item)
+            
+        return feature_log
 
-        vision_path      = os.path.join(BASE_DIR, "logs", "vision_doc.json")
-        feature_log_path = os.path.join(BASE_DIR, "logs", "feature_log.json")
-        session_log_path = os.path.join(BASE_DIR, "logs", "session_log.json")
-        
-        if os.path.exists(vision_path) and os.path.exists(feature_log_path) and os.path.exists(session_log_path):
-            try:
-                with open(vision_path, "r") as f:
-                    vision_doc = VisionDoc(**json.load(f))
+    async def load_or_create_project(self, user_id: str) -> tuple:   
+        try:
+            vision_doc = await VisionDoc.find_one(VisionDoc.user_id == user_id)
+            if vision_doc is None:
+                return "new", ProjectState()
 
-                with open(feature_log_path, "r") as f:
-                    feature_log = json.load(f)
+            if vision_doc:
+               
+               feature_log = await FeatureLogItem.find(FeatureLogItem.user_id == user_id).to_list()
+            
+               session_log = await SessionEntry.find(SessionEntry.user_id == user_id).to_list() 
+              
+               state = ProjectState(
+                    vision_doc=vision_doc, 
+                    feature_log=feature_log, 
+                    session_log=session_log
+                )
+               return "existing", state
 
-                with open(session_log_path, "r") as f:
-                    session_log = SessionLog(**json.load(f))
+        except Exception as e:
+          raise DatabaseError(f"Project could not be loaded from database: {e}") from e
 
-                state = ProjectState(vision_doc, feature_log, session_log)
-                return "existing", state
+    async def log_feature_cycle(self, feature_log: list, user_id: str, feature_id: str, event: str, vision_doc: VisionDoc, alignment_note: str = None, drift_event: str = None) -> list:
 
-            except (json.JSONDecodeError, ValidationError) as e:
-                raise ParsingFailed(f"Project files are corrupted and could not be loaded: {e}") from e
-            except OSError as e:
-                raise FileSystemError(f"Failed to read project files: {e}") from e
-
-        return "new", ProjectState()
-
-
-    def log_feature_cycle(self, feature_log: dict, feature_id: str, event: str, vision_doc: VisionDoc, alignment_note: str = None, drift_event: str = None) -> dict:
-
-        
         if event not in ("start", "complete", "in_progress"):
             raise EventError(f"Invalid event: {event}. Must be 'start', 'complete' or 'in_progress'")
-
-        if feature_id not in feature_log.get("features", {}):
-            raise MissingFeatureId(f"Feature '{feature_id}' not found in feature log.")
-
+        
         try:
-            item = FeatureLogItem(**feature_log["features"][feature_id])
-        except ValidationError as e:
-            raise ParsingFailed(f"Feature log entry for '{feature_id}' is invalid: {e}") from e
+           item = next(
+             (i for i in feature_log 
+              if i.user_id == user_id and i.feature_id == feature_id)
+        )
+        except Exception as e:
+            raise MissingFeatureId(f"Feature '{feature_id}' not found for user {user_id}.")
 
-        timestamp = now()
+        timestamp = get_time()
 
         if event == "start":
             item.status = "in_progress"
-            item.cycles.append({
-                "started_at": timestamp,
-                "completed_at": None,
-                "alignment_notes": []
-            })
-            if drift_event is not None:
-                item.drift_events.append({
-                    "drift_time": timestamp,
-                    "drift_note": drift_event
-                })
+            item.cycle = CycleItem(started_at=timestamp)
+            if drift_event:
+                item.cycle.drift_events.append({"timestamp": timestamp, "note": drift_event})
 
         elif event == "in_progress":
-            if not item.cycles:
+            if item.cycle is None:
                 raise EventError(f"Cannot update '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
             if alignment_note is not None:
-                item.cycles[-1]["alignment_notes"].append({
-                    "timestamp": timestamp,
-                    "note": alignment_note
-                })
+                item.cycle.alignment_notes.append({"timestamp": timestamp, "note": alignment_note})
             if drift_event is not None:
-                item.drift_events.append({
-                    "drift_time": timestamp,
-                    "drift_note": drift_event
-                })
+                item.cycle.drift_events.append({"timestamp": timestamp, "note": drift_event})
 
         elif event == "complete":
-            if not item.cycles:
-                raise EventError(f"Cannot complete '{feature_id}': no active cycle. Call log_feature_cycle with event='start' first.")
+            if item.cycle is None:
+                raise EventError(f"Cannot complete '{feature_id}': no active cycle.")
             item.status = "complete"
-            last_cycle = item.cycles[-1]
-            last_cycle["completed_at"] = timestamp
+            item.cycle.completed_at = timestamp
             if alignment_note is not None:
-                last_cycle["alignment_notes"].append({
-                    "timestamp": timestamp,
-                    "note": alignment_note
-                })
-
-        feature_log["features"][feature_id] = item.model_dump()
-
+                item.cycle.alignment_notes.append({"timestamp": timestamp, "note": alignment_note})
+  
         if vision_doc is not None and event in ("start", "complete"):
             new_status = "in_progress" if event == "start" else "complete"
             for backlog_item in vision_doc.backlog:
@@ -129,85 +99,58 @@ class Storage(StorageBackend):
 
         return feature_log
     
-    def start_session(self, session_log: SessionLog) -> tuple:
-        
-        # Create new session entry
+    async def start_session(self, user_id: str) -> SessionEntry:
         new_session = SessionEntry(
+            user_id=user_id,
             workSessionId=str(uuid.uuid4()),
-            startTime=now()
+            startTime=get_time()
         )
-        
-        session_log.sessions.append(new_session)
-        
-        return new_session.workSessionId, session_log
+        await new_session.insert()
+        return new_session
 
-    def end_session(self, session_id: str, session_log: SessionLog, feature_log: dict, total_tokens: int) -> SessionLog:
+    async def end_session(self, project_state: ProjectState, user_id: str, session_id: str, total_tokens: int) -> SessionEntry:
         
-        # Find session by session_id
-        session = next(
-            (s for s in session_log.sessions if s.workSessionId == session_id),
-            None
-        )
+        try:
+            session = next(
+                (i for i in project_state.session_log 
+                if i.user_id == user_id and i.workSessionId == session_id)
+            )
+        except Exception as e:
+           raise MissingSessionId(f"Session {session_id} not found")
         
-        if session is None:
-            raise MissingSessionId(f"Session {session_id} not found")
+        completed = [f.feature_id for f in project_state.feature_log if f.status == "complete"]
+        drift_count = sum(len(f.cycle.drift_events) for f in project_state.feature_log if f.cycle)
         
-        # Aggregate feature_log
-        features = feature_log["features"]
-        
-        completed = [
-            fid for fid, fdata in features.items()
-            if fdata["status"] == "complete"
-        ] # going through all features and checking which ones are marked as complete
-        
-        drift_count = sum(
-            len(fdata["drift_events"])
-            for fdata in features.values()
-        ) # going through all features and summing up the number of drift events across all features
-        
-        # Calculate session duration
-        start = datetime.fromisoformat(session.startTime)
-        end = now_dt()
+        start = session.startTime
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        end = get_time()
         duration = int((end - start).total_seconds() / 60)
-        
-        # Update session
-        session.endTime = end.isoformat()
+        session.endTime = end
         session.featureCyclesCompleted = completed
         session.driftEventsCount = drift_count
         session.totalTokensUsed = total_tokens
         session.totalDurationMinutes = duration
-        
-        return session_log
-    
-    def dump_logs(self, vision_doc: VisionDoc, feature_log: dict, session_log: SessionLog) -> None:
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        log_dir_path = os.path.join(BASE_DIR, "logs")
+ 
+        return session
 
+    async def dump_logs(self, vision_doc: Optional[VisionDoc], feature_log: List[FeatureLogItem], session_log: List[SessionEntry]) -> None:
+        """
+        Async saving in MongoDB
+        """
         try:
-            os.makedirs(log_dir_path, exist_ok=True)
-        except OSError as e:
-            raise FileSystemError(f"Failed to create log directory {log_dir_path}: {e}") from e
+            if vision_doc:
+                await vision_doc.save()
 
-        if vision_doc is not None:
-            vision_doc_path = os.path.join(log_dir_path, "vision_doc.json")
-            try:
-                with open(vision_doc_path, "w") as f:
-                    json.dump(vision_doc.model_dump(), f, indent=2)
-            except OSError as e:
-                raise FileSystemError(f"Failed to write vision doc: {e}") from e
+            if feature_log is not None:
+                for feature in feature_log:
+                    await feature.save()
 
-        if feature_log is not None:
-            feature_log_path = os.path.join(log_dir_path, "feature_log.json")
-            try:
-                with open(feature_log_path, "w") as f:
-                    json.dump(feature_log, f, indent=2)
-            except OSError as e:
-                raise FileSystemError(f"Failed to write feature log: {e}") from e
+            if session_log is not None:
+                for session_entry in session_log:
+                    await session_entry.save()
 
-        if session_log is not None:
-            session_log_path = os.path.join(log_dir_path, "session_log.json")
-            try:
-                with open(session_log_path, "w") as f:
-                    json.dump(session_log.model_dump(), f, indent=2)
-            except OSError as e:
-                raise FileSystemError(f"Failed to write session log: {e}") from e
+
+        except Exception as e:
+            raise DatabaseError(f"Database save failed during dump_logs: {e}") from e
+

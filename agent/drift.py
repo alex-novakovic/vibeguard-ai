@@ -54,8 +54,10 @@ async def handle_drift_flow(state: dict, user_msg: str, project_state: ProjectSt
     Returns a result dict describing what happened and what to do next.
     """
     active_id = project_state.active_feature_id
-    features  = project_state.feature_log.get("features", {})
-    active_feat = features.get(active_id)
+    active_feat = next(
+    (f for f in project_state.feature_log if f.feature_id == active_id),
+    None
+)
     backlog_item = next((b for b in project_state.vision_doc.backlog if b.id == active_id), None)
 
     if not active_feat or not backlog_item:

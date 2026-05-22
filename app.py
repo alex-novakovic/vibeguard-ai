@@ -1,17 +1,21 @@
 import gradio as gr
 import uuid
 import time
+import json
+import re
+import os
 from agent.agent_session import AgentSession, PHASE_GUARDIAN
 from agent.loop import Agent
 from interfaces import StorageBackend, AgentFunctions
 from data.storage import Storage
+from data.db import init_db
 from utils.exceptions import (
+    DatabaseError,
     VibeGuardError,
     RateLimitReached,
     ModelTimeout,
     EmptyResponse,
     ParsingFailed,
-    FileSystemError,
 )
 
 storage: StorageBackend = Storage()
@@ -22,26 +26,43 @@ _drift_vars: dict = {"last_send": None, "status": "new"}
 
 WELCOME = "Hi! I'm **VibeGuard AI**. Let's scope your project first.\n\n**What are you building?**"
 
+def _sanitize(text: str) -> str:
+    """Strip EOS tokens and HTML closing tags that break Gradio's SSE parser."""
+    return re.sub(r"</\w+>", "", text).strip()
 
-def on_startup(user_id, request: gr.Request):
+
+async def on_startup(user_id, request: gr.Request): 
+
     if not user_id:
-        user_id = str(uuid.uuid4())  # first visit — generate once, stored in browser
+        # user_id = "633d24a1-4ffa-4590-a69c-d1d72fa786a8"
+        user_id = str(uuid.uuid4())
+        print(user_id)
+
+    try:
+        await init_db()
+    except Exception as e:
+        msg = f"⚠️ Database connection failed: {e}"
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
+    
+     # first visit — generate once, stored in browser
     try:
         session = AgentSession()
         session.user_id = user_id
-        status, state = storage.load_or_create_project(user_id)
-        session_id, state.session_log = storage.start_session(state.session_log)
+        status, state = await storage.load_or_create_project(user_id)
+        new_session_entry = await storage.start_session(user_id) 
+        session_id = new_session_entry.workSessionId
+        state.session_log.append(new_session_entry)
         _session_states[request.session_hash] = {}
         _session_states[request.session_hash]["session_id"] = session_id
     except ParsingFailed as e:
         msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession()
-    except FileSystemError as e:
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
+    except DatabaseError as e:
         msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession()
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
     except VibeGuardError as e:
         msg = f"⚠️ {e}"
-        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession()
+        return user_id, [{"role": "assistant", "content": msg}], None, None, None, "new", AgentSession(), None
 
     session.project_state = state
     _session_states[request.session_hash]["agent_session"] = session
@@ -49,15 +70,14 @@ def on_startup(user_id, request: gr.Request):
     if status == "existing":
         session.phase = PHASE_GUARDIAN
         # restore active feature and set is_returning
-        features = state.feature_log.get("features", {})
-        active = next((fid for fid, f in features.items() if f["status"] == "in_progress"),None)
-        session.is_returning = active is not None  # ← set here
+        active = next((f.feature_id for f in state.feature_log if f.status == "in_progress"), None)
+        session.is_returning = active is not None
         return (
             user_id,
             [{"role": "assistant", "content": "Welcome back! Your project is loaded. Start a feature below."}],
             state.vision_doc.model_dump(),
-            state.feature_log,
-            state.session_log.model_dump() if state.session_log else None,
+            [json.loads(item.model_dump_json()) for item in state.feature_log],
+            [json.loads(item.model_dump_json()) for item in state.session_log],
             status,
             session,
             True  # ← initialized_state = True, skip initialize_feature_log entirely
@@ -67,23 +87,21 @@ def on_startup(user_id, request: gr.Request):
         [{"role": "assistant", "content": WELCOME}],
         None,
         None,
-        state.session_log.model_dump() if state.session_log else None,
+        [json.loads(item.model_dump_json()) for item in state.session_log] if state.session_log else None,  # Ovo će biti None za novi projekat, ali je važno da se vrati kao None, a ne kao prazan niz
         status,
         session,
         False  # ← initialized_state = False, will initialize on first send
     )
 
-def save_logs(session):
-    if session is None or session.project_state is None:
-        return gr.update()
-    try:
-        proj_state = session.project_state
-        storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
-    except FileSystemError as e:
-        return gr.update(value=f"⚠️ Auto-save failed: {e}")
-    return gr.update()
+def token_check(session):
+    print("Udje u token_check")
+    print("feature:", session.feature_tokens, "session:", session.project_state.current_cycle_tokens)
+    if session.feature_tokens > 50000:
+        gr.Warning("This feature has surpassed 50,000 tokens — you've gone back and forth too many times. Wrap it up and move on.")
+    if session.project_state and session.project_state.current_cycle_tokens > 100000:
+        gr.Warning("This session has surpassed 100,000 tokens total. Consider finishing up your current feature and taking a break.")
 
-def on_exit(request: gr.Request):
+async def on_exit(request: gr.Request):
     entry = _session_states.pop(request.session_hash, None)
     if entry is None:
         return
@@ -93,21 +111,30 @@ def on_exit(request: gr.Request):
         return
     try:
         proj_state = session.project_state
-        proj_state.session_log = storage.end_session(
-            session_id,
-            proj_state.session_log,
-            proj_state.feature_log,
-            proj_state.current_cycle_tokens,
+        user_id = session.user_id  
+        
+        updated_session_entry = await storage.end_session(
+            project_state=proj_state,
+            user_id=user_id,
+            session_id=session_id,
+            total_tokens=proj_state.current_cycle_tokens,
         )
-        storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
+        
+        if proj_state.session_log:
+            for i, old_entry in enumerate(proj_state.session_log):
+                if old_entry.workSessionId == session_id:
+                    proj_state.session_log[i] = updated_session_entry
+                    break
+
+        await storage.dump_logs(proj_state.vision_doc, proj_state.feature_log, proj_state.session_log)
+        
     except VibeGuardError:
         pass
-
 
 async def on_drift_check(history, session):
     last_send = _drift_vars["last_send"]
     status = _drift_vars["status"]
-    if status != "existing" or last_send is None or time.time() - last_send < 20:
+    if status != "existing" or last_send is None or time.time() - last_send < 1800:
         return gr.update(), gr.update(), gr.update(), gr.update()
 
     gr.Warning("Time for check")
@@ -116,6 +143,8 @@ async def on_drift_check(history, session):
 
     try:
         response, session = await agent.run_agent("DRIFT", status, session)
+        response = _sanitize(response)
+        token_check(session)
     except RateLimitReached:
         response = "⚠️ Rate limit reached. Please wait a moment and try again."
     except ModelTimeout:
@@ -149,6 +178,8 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
 
     try:
         response, session = await agent.run_agent(message, status, session)
+        response = _sanitize(response)
+        token_check(session)
     except RateLimitReached:
         return _agent_error("⚠️ Rate limit reached. Please wait a moment and try again.")
     except ModelTimeout:
@@ -170,34 +201,38 @@ async def on_send(message, history, session, status, initialized, request: gr.Re
         active = proj_state.active_feature_id
 
         if not initialized:
-            proj_state.feature_log = storage.initialize_feature_log(proj_state.vision_doc)
+            proj_state.feature_log = await storage.initialize_feature_log(proj_state.vision_doc)
             _session_states[request.session_hash]["agent_session"] = session
             _drift_vars["last_send"] = time.time()
             _drift_vars["status"] = "existing"
-            return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), True, "existing", session, gr.update()
+            await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
+            return history, history, "", proj_state.vision_doc.model_dump(), [json.loads(item.model_dump_json()) for item in proj_state.feature_log], gr.update(), True, "existing", session, gr.update()
 
+        user_id = session.user_id
         if prev is None and active is not None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "start", proj_state.vision_doc, None, None)
+            proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "start", proj_state.vision_doc, None, None)
         elif prev == active:
             if session.drift_note is not None and session.alignment_note is not None:
-               proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
-               session.alignment_note = None
-               session.drift_note = None
+                proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, session.drift_note)
+                session.alignment_note = None
+                session.drift_note = None
             elif session.alignment_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, session.alignment_note, None)
+                proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, session.alignment_note, None)
                 session.alignment_note = None
             elif session.drift_note is not None:
-                proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, active, "in_progress", proj_state.vision_doc, None, session.drift_note)
+                proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, active, "in_progress", proj_state.vision_doc, None, session.drift_note)
                 session.drift_note = None
         elif prev is not None and active is None:
-            proj_state.feature_log = storage.log_feature_cycle(proj_state.feature_log, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
+            proj_state.feature_log = await storage.log_feature_cycle(proj_state.feature_log, user_id, prev, "complete", proj_state.vision_doc, session.alignment_note, None)
             session.alignment_note = None
             
         _session_states[request.session_hash]["agent_session"] = session
         _drift_vars["last_send"] = time.time()
-        return history, history, "", proj_state.vision_doc.model_dump(), proj_state.feature_log, gr.update(), initialized, status, session, gr.update()
+        await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
+        return history, history, "", proj_state.vision_doc.model_dump(), [json.loads(item.model_dump_json()) for item in proj_state.feature_log], gr.update(), initialized, status, session, gr.update()
 
     _drift_vars["last_send"] = time.time()
+    await storage.dump_logs(session.project_state.vision_doc, session.project_state.feature_log, session.project_state.session_log)
     return history, history, "", gr.update(), gr.update(), gr.update(), initialized, status, session, gr.update()
 
 
@@ -277,14 +312,13 @@ with gr.Blocks(title="VibeGuard AI") as demo:
         inputs=[user_id_browser],
         outputs=[user_id_browser, chatbot, vision_display, log_display, session_display, status_state, session_state, initialized_state],
     )
-    timer_log = gr.Timer(300)
-    timer_log.tick(save_logs, inputs=[session_state], outputs=[chatbot])
 
-    timer_drift = gr.Timer(10)
+    timer_drift = gr.Timer(60)
     timer_drift.tick(fn=on_drift_check, inputs=[history_state, session_state], outputs=[chatbot, history_state, session_state, drift_fx], trigger_mode="multiple")
 
     demo.unload(on_exit)
 
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(theme=gr.themes.Soft(), share=False, js=_DRIFT_JS)
+    demo.launch(theme=gr.themes.Soft(), share=False, js=_DRIFT_JS, server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
+

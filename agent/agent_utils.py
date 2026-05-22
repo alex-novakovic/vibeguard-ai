@@ -1,13 +1,10 @@
 import logging
 from agent.prompts.guardian_prompt import GUARDIAN_PROMPT
 from agent.config import CONVERSATION_MODEL, client
-from datetime import datetime
 from agent.prompts.classify_guardian_intent_prompt import build_guardian_intent_prompt
 import json
 
-
 logger = logging.getLogger(__name__)
-
 
 # is_returning = True only on first message after refresh
 async def classify_guardian_intent(user_message: str, active_feature_id: str | None = None, last_assistant_msg: str | None = None, is_returning: bool = False) -> dict:
@@ -38,24 +35,16 @@ async def classify_guardian_intent(user_message: str, active_feature_id: str | N
         }
 
 async def generate_guardian_response(project_state, user_msg, skill_output, history: list):
-    # 1. Prepare the dynamic context (unchanged)
+    #Prepare the dynamic context (unchanged)
     formatted_prompt = GUARDIAN_PROMPT.format(
         vision_statement=project_state.vision_doc.visionStatement,
         success_criteria=", ".join(project_state.vision_doc.successCriteria),
         active_task=project_state.active_feature_id or "No active task.",
         backlog=json.dumps([{"id": item.id, "name": item.name, "status": item.status} for item in project_state.vision_doc.backlog])
     )
-
-    # 2. Build the message chain
-    # Start with System
+    #Start with System
     messages = [{"role": "system", "content": formatted_prompt}]
-    
-    # Add the last 10 messages from history (Conversation Memory)
-    # We slice [-10:] to keep it efficient
     messages.extend(history[-10:])
-    
-    # Add the current Turn Data (The "Now")
-    # We include skill_output here so the AI knows what the "Skills" found
     messages.append({
         "role": "user", 
         "content": f"Internal Skill Data: {skill_output}\n\nUser Message: {user_msg}"
@@ -80,15 +69,12 @@ async def generate_guardian_response(project_state, user_msg, skill_output, hist
 
 def calculate_remaining_minutes(vision_doc, feature_log) -> int:
     total_budget = vision_doc.availableTimeHours * 60
-    features = feature_log["features"]
     
     spent = 0
-    for feature in features.values():
-        for cycle in feature["cycles"]:
-            started = cycle.get("started_at")
-            completed = cycle.get("completed_at")
-            if started and completed:  # only count finished cycles
-                delta = datetime.fromisoformat(completed) - datetime.fromisoformat(started)
-                spent += delta.total_seconds() / 60
+    for feature in feature_log:
+        cycle = feature.cycle
+        if cycle and cycle.started_at and cycle.completed_at:
+            delta = cycle.completed_at - cycle.started_at
+            spent += delta.total_seconds() / 60
 
     return max(0, total_budget - int(spent))

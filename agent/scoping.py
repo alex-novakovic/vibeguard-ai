@@ -2,14 +2,24 @@ import json
 import random
 import logging
 import asyncio
-from utils.common import now
+from utils.common import get_time
 from dotenv import load_dotenv
+from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
+from pydantic import ValidationError
+from utils.exceptions import (
+    DatabaseError,
+    RateLimitReached, 
+    ModelTimeout, 
+    ParsingFailed, 
+    EmptyResponse
+)
+from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
 from openai import RateLimitError, APIConnectionError, APITimeoutError
 from agent.config import CONVERSATION_MODEL, PARSING_MODEL, client
 from utils.exceptions import RateLimitReached, ModelTimeout, ParsingFailed, EmptyResponse
-from data.schemas import VisionDoc
+from data.schemas import VisionDocData
 from agent.prompts.system_prompt import CONVERSATION_PROMPT, PARSING_PROMPT
-
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +94,7 @@ class ScopingSession:
                         raise RateLimitReached("Rate limit hit after all retries.") from e
                     raise ModelTimeout("Model timed out after all retries.") from e
 
-    async def scoping_session(self) -> dict:
+    async def scoping_session(self, user_id: str) -> VisionDocData:
         transcript = self.get_transcript()
         filled_prompt = PARSING_PROMPT.replace("{transcript}", transcript)
 
@@ -117,15 +127,16 @@ class ScopingSession:
                     raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
                 vision_doc = json.loads(raw)
-                vision_doc["createdAt"] = now()
+                vision_doc["createdAt"] = get_time()
+                vision_doc["user_id"] = user_id
 
                 # fill missing descriptions before Pydantic validation
                 for item in vision_doc.get("backlog", []):
                     if not item.get("description"):
                         item["description"] = item.get("name", "No description provided.")
 
-                return VisionDoc(**vision_doc)
-
+                return VisionDocData(**vision_doc)
+                
             except (RateLimitError, APITimeoutError) as e:
                 if attempt < 2:
                     await self._handle_backoff(attempt, e)
@@ -138,6 +149,9 @@ class ScopingSession:
                     await asyncio.sleep(2)
                 else:
                     raise ParsingFailed("Failed to parse valid vision doc JSON.")
+            except ValidationError as e:
+                logger.error(f"VisionDoc validation failed: {e}")
+                raise ParsingFailed("AI returned a vision doc with invalid field values.") from e
             except Exception as e:
                 logger.exception("Unexpected error during scoping session")
                 raise

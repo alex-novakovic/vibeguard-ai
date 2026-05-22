@@ -1,0 +1,470 @@
+{
+  "scoping_test_cases": [
+    {
+      "id": "SC001",
+      "description": "Happy path — full info provided, 3 core features, comfortable dev, 20h budget",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I want to build a crypto portfolio tracker. It shows a user's wallet balances across multiple chains and calculates total portfolio value in USD."
+        },
+        {
+          "role": "assistant",
+          "content": "Nice — a multi-chain portfolio tracker. To plan this well, how much time do you have and how comfortable are you with the stack involved?"
+        },
+        {
+          "role": "user",
+          "content": "I have about 20 hours over 2 weeks. I'm comfortable with React and have done some Web3 work before."
+        },
+        {
+          "role": "assistant",
+          "content": "Got it — comfortable developer, 20 hours. For core features I'm thinking: wallet connection, on-chain balance fetching, and a portfolio dashboard. Does that match what you have in mind?"
+        },
+        {
+          "role": "user",
+          "content": "Yes exactly. I also want price alerts but that can be later."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfect — price alerts go to nice-to-have. What does done look like for v1?"
+        },
+        {
+          "role": "user",
+          "content": "User connects wallet, sees all balances and total USD value on a dashboard."
+        },
+        {
+          "role": "assistant",
+          "content": "Any constraints? Hard limits on tech or budget?"
+        },
+        {
+          "role": "user",
+          "content": "No paid APIs — free tier only. Stack is React, ethers.js, and a public RPC."
+        },
+        {
+          "role": "assistant",
+          "content": "Any external dependencies beyond public RPC?"
+        },
+        {
+          "role": "user",
+          "content": "CoinGecko for prices."
+        },
+        {
+          "role": "assistant",
+          "content": "What should we call this project?"
+        },
+        {
+          "role": "user",
+          "content": "ChainView"
+        },
+        {
+          "role": "assistant",
+          "content": "Project: ChainView\nVision: A multi-chain crypto portfolio tracker that shows wallet balances and USD value.\nTarget User: Crypto-active developers tracking their own holdings.\nProblem: No simple self-hosted tool to view multi-chain balances in one place.\nAvailable Time: ~20 hours over 2 weeks\nExperience Level: Comfortable\nSuccess Looks Like: User connects wallet and sees all balances and total USD value on a dashboard.\nConstraints: Free-tier APIs only.\nTech Stack: React, ethers.js, public RPC\nExternal Dependencies: CoinGecko\n\nTasks:\n- Wallet Connection: Implement MetaMask wallet connect flow using ethers.js | 90 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: None\n- Balance Fetching: Fetch on-chain token balances via public RPC for connected wallet | 90 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: Wallet Connection\n- Portfolio Dashboard: Display all balances and compute total USD value using CoinGecko prices | 90 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Balance Fetching\n\nNice to Have: Price alerts\n\nDoes this look correct? Confirm to finish or tell me what to change."
+        },
+        {
+          "role": "user",
+          "content": "Looks good, confirmed."
+        },
+        {
+          "role": "assistant",
+          "content": "SCOPING_COMPLETE"
+        }
+      ],
+      "expected": {
+        "projectName": "ChainView",
+        "availableTimeHours": 20,
+        "availableTime_is_null": false,
+        "backlog_count": 3,
+        "backlog": [
+          {
+            "name_contains": "Wallet",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Balance",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Dashboard",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          }
+        ],
+        "nice_to_have_count": 1,
+        "tech_stack_contains": ["React"]
+      },
+      "notes": "All fields explicit in transcript. Parser should have no ambiguity."
+    },
+    {
+      "id": "SC002",
+      "description": "No time budget stated — availableTime must be null, availableTimeHours estimated from tasks",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I want to build a CLI tool that scaffolds new Node.js projects with a standard folder structure and installs common dependencies."
+        },
+        {
+          "role": "assistant",
+          "content": "Solid idea. How comfortable are you with Node.js tooling and CLI development?"
+        },
+        {
+          "role": "user",
+          "content": "Pretty comfortable, I've written CLI tools before."
+        },
+        {
+          "role": "assistant",
+          "content": "Do you have a time budget in mind for this?"
+        },
+        {
+          "role": "user",
+          "content": "Not really, I just want to get it done."
+        },
+        {
+          "role": "assistant",
+          "content": "No problem. Core features: scaffold command that generates folder structure, dependency installer, and a config file generator. Sound right?"
+        },
+        {
+          "role": "user",
+          "content": "Yes, and add a dry-run flag so users can preview what will be created."
+        },
+        {
+          "role": "assistant",
+          "content": "Got it, adding dry-run. What does done look like for v1?"
+        },
+        {
+          "role": "user",
+          "content": "Running the CLI with a project name creates the full folder structure and installs deps."
+        },
+        {
+          "role": "assistant",
+          "content": "Tech stack?"
+        },
+        {
+          "role": "user",
+          "content": "Node.js, Commander.js for the CLI framework."
+        },
+        {
+          "role": "assistant",
+          "content": "Project: NodeScaffold\nVision: A CLI tool that scaffolds new Node.js projects with standard structure and dependency installation.\nTarget User: Node.js developers starting new projects.\nProblem: Repetitive manual setup for every new Node project.\nAvailable Time: null\nExperience Level: Comfortable\nSuccess Looks Like: Running the CLI with a project name creates the full folder structure and installs deps.\nConstraints: null\nTech Stack: Node.js, Commander.js\nExternal Dependencies: None\n\nTasks:\n- Scaffold Command: Implement main CLI command that generates folder structure from a template | 60 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: None\n- Dependency Installer: Auto-install common dependencies after scaffolding | 45 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Scaffold Command\n- Config Generator: Generate package.json and config files from user input | 45 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Scaffold Command\n- Dry-run Flag: Add --dry-run flag that previews changes without writing files | 30 mins | Priority: Medium | Confidence: High | Scope Flag: No | Dependencies: Scaffold Command\n\nNice to Have: None\n\nDoes this look correct?"
+        },
+        {
+          "role": "user",
+          "content": "Perfect, confirmed."
+        },
+        {
+          "role": "assistant",
+          "content": "SCOPING_COMPLETE"
+        }
+      ],
+      "expected": {
+        "projectName": "NodeScaffold",
+        "availableTime_is_null": true,
+        "backlog_count": 4,
+        "backlog": [
+          {
+            "name_contains": "Scaffold",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Installer",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Config",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Dry",
+            "priority": "medium",
+            "confidence": "high",
+            "scopeFlag": false
+          }
+        ],
+        "nice_to_have_count": 0,
+        "tech_stack_contains": ["Node.js"]
+      },
+      "notes": "User explicitly says no time budget. availableTime must be null, not a string."
+    },
+    {
+      "id": "SC003",
+      "description": "Scope flag triggered — user insists on a risky feature the agent flagged",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I want to build a personal finance dashboard that tracks expenses from my bank accounts automatically via open banking APIs."
+        },
+        {
+          "role": "assistant",
+          "content": "Interesting project. How familiar are you with open banking or financial APIs?"
+        },
+        {
+          "role": "user",
+          "content": "I'm still learning. I've never used open banking APIs before."
+        },
+        {
+          "role": "assistant",
+          "content": "How much time do you have for this?"
+        },
+        {
+          "role": "user",
+          "content": "About 30 hours over a month."
+        },
+        {
+          "role": "assistant",
+          "content": "For a learning developer, open banking API integration is risky — Plaid/TrueLayer have complex onboarding, sandbox environments, and approval processes that can easily eat 15–20 hours alone. Would you consider starting with manual CSV import instead and keeping open banking as a future feature?"
+        },
+        {
+          "role": "user",
+          "content": "I understand the risk, but I really want the automatic bank sync. Let's keep it."
+        },
+        {
+          "role": "assistant",
+          "content": "Noted — keeping bank sync with a scope flag. Core features: bank account connection via Plaid, expense categorization, and a dashboard view. Does that work?"
+        },
+        {
+          "role": "user",
+          "content": "Yes, that's it."
+        },
+        {
+          "role": "assistant",
+          "content": "What does done look like for v1?"
+        },
+        {
+          "role": "user",
+          "content": "Connect a bank account, see categorized transactions for the last month."
+        },
+        {
+          "role": "assistant",
+          "content": "Tech stack?"
+        },
+        {
+          "role": "user",
+          "content": "React frontend, Node.js backend."
+        },
+        {
+          "role": "assistant",
+          "content": "Project: FinTrack\nVision: A personal finance dashboard that automatically syncs bank transactions and categorizes expenses.\nTarget User: Individuals wanting to track personal finances without manual input.\nProblem: No easy self-hosted tool for automatic expense tracking.\nAvailable Time: ~30 hours over a month\nExperience Level: Still learning\nSuccess Looks Like: Connect a bank account and see categorized transactions for the last month.\nConstraints: null\nTech Stack: React, Node.js\nExternal Dependencies: Plaid\n\nTasks:\n- Bank Account Connection: Integrate Plaid Link to authenticate and connect user bank accounts | 300 mins | Priority: Critical | Confidence: High | Scope Flag: Yes — user is still learning; Plaid onboarding and sandbox approval can consume 15–20 hours alone | Dependencies: None\n- Expense Categorization: Auto-categorize transactions fetched from Plaid using category metadata | 120 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Bank Account Connection\n- Dashboard View: Display categorized transactions and spending summary for the last 30 days | 90 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Expense Categorization\n\nNice to Have: CSV import\n\nDoes this look correct?"
+        },
+        {
+          "role": "user",
+          "content": "Yes, confirmed."
+        },
+        {
+          "role": "assistant",
+          "content": "SCOPING_COMPLETE"
+        }
+      ],
+      "expected": {
+        "projectName": "FinTrack",
+        "availableTimeHours": 30,
+        "availableTime_is_null": false,
+        "backlog_count": 3,
+        "backlog": [
+          {
+            "name_contains": "Bank",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": true
+          },
+          {
+            "name_contains": "Categor",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Dashboard",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          }
+        ],
+        "nice_to_have_count": 1,
+        "tech_stack_contains": ["React", "Node.js"]
+      },
+      "notes": "scopeFlag must be true on the bank connection feature. User explicitly accepted the risk."
+    },
+    {
+      "id": "SC004",
+      "description": "Low confidence feature — user was hesitant about one feature",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I want to build a task management app with a Kanban board for my team."
+        },
+        {
+          "role": "assistant",
+          "content": "Got it — a team Kanban app. How experienced are you and how much time do you have?"
+        },
+        {
+          "role": "user",
+          "content": "I'm comfortable with full-stack development. About 15 hours this week."
+        },
+        {
+          "role": "assistant",
+          "content": "Good. Core features I see: board with columns, task cards, and drag-and-drop reordering. Should we also include user assignment on tasks?"
+        },
+        {
+          "role": "user",
+          "content": "The board and cards are definite. For user assignment... I'm not sure, maybe? It could be useful but I'm not sure if it fits v1."
+        },
+        {
+          "role": "assistant",
+          "content": "Let's include it but flag it as low confidence since you're unsure. What does done look like?"
+        },
+        {
+          "role": "user",
+          "content": "Team can create tasks, move them across columns, and assign them to members."
+        },
+        {
+          "role": "assistant",
+          "content": "Tech stack?"
+        },
+        {
+          "role": "user",
+          "content": "React with react-beautiful-dnd, and a Supabase backend."
+        },
+        {
+          "role": "assistant",
+          "content": "Project: KanFlow\nVision: A team Kanban board for managing and tracking tasks across workflow stages.\nTarget User: Small development teams.\nProblem: Teams need a lightweight, self-controlled Kanban tool.\nAvailable Time: ~15 hours this week\nExperience Level: Comfortable\nSuccess Looks Like: Team can create tasks, move them across columns, and assign them to members.\nConstraints: null\nTech Stack: React, react-beautiful-dnd, Supabase\nExternal Dependencies: Supabase\n\nTasks:\n- Kanban Board: Build board layout with configurable columns using React | 60 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: None\n- Task Cards: Implement task card creation, editing, and display | 60 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: Kanban Board\n- Drag and Drop: Add drag-and-drop reordering using react-beautiful-dnd | 90 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Task Cards\n- User Assignment: Allow assigning tasks to team members with a dropdown | 60 mins | Priority: Medium | Confidence: Low | Scope Flag: No | Dependencies: Task Cards\n\nNice to Have: None\n\nDoes this look correct?"
+        },
+        {
+          "role": "user",
+          "content": "Yes, confirmed."
+        },
+        {
+          "role": "assistant",
+          "content": "SCOPING_COMPLETE"
+        }
+      ],
+      "expected": {
+        "projectName": "KanFlow",
+        "availableTimeHours": 15,
+        "availableTime_is_null": false,
+        "backlog_count": 4,
+        "backlog": [
+          {
+            "name_contains": "Kanban",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Task",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Drag",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Assignment",
+            "priority": "medium",
+            "confidence": "low",
+            "scopeFlag": false
+          }
+        ],
+        "nice_to_have_count": 0,
+        "tech_stack_contains": ["React", "Supabase"]
+      },
+      "notes": "User assignment must have confidence=low because user was explicitly uncertain about it."
+    },
+    {
+      "id": "SC005",
+      "description": "Nice-to-have features pushed out — verifies niceToHave extraction",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I want to build a recipe sharing app where users can post recipes with ingredients and steps."
+        },
+        {
+          "role": "assistant",
+          "content": "Nice — a recipe sharing platform. How much time and experience do you have?"
+        },
+        {
+          "role": "user",
+          "content": "I'm comfortable, about 10 hours total."
+        },
+        {
+          "role": "assistant",
+          "content": "Got it. Core features: recipe creation, recipe listing/browsing, and user auth. You also mentioned ratings, comments, and a meal planner — should those go in v1?"
+        },
+        {
+          "role": "user",
+          "content": "Ratings and comments would be nice but can wait. Meal planner is definitely future. Just the core three for now."
+        },
+        {
+          "role": "assistant",
+          "content": "Got it — ratings, comments, and meal planner to nice-to-have. What does v1 success look like?"
+        },
+        {
+          "role": "user",
+          "content": "Users can sign up, post a recipe, and browse all recipes."
+        },
+        {
+          "role": "assistant",
+          "content": "Tech stack?"
+        },
+        {
+          "role": "user",
+          "content": "Next.js and MongoDB."
+        },
+        {
+          "role": "assistant",
+          "content": "Project: RecipeShare\nVision: A recipe sharing platform where users can post and browse recipes.\nTarget User: Home cooks who want to share and discover recipes.\nProblem: No simple self-hosted space to share personal recipes.\nAvailable Time: ~10 hours total\nExperience Level: Comfortable\nSuccess Looks Like: Users can sign up, post a recipe, and browse all recipes.\nConstraints: null\nTech Stack: Next.js, MongoDB\nExternal Dependencies: None\n\nTasks:\n- User Auth: Implement sign up, login, and session management | 90 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: None\n- Recipe Creation: Build form for posting recipes with ingredients and steps | 60 mins | Priority: Critical | Confidence: High | Scope Flag: No | Dependencies: User Auth\n- Recipe Browsing: Display all published recipes in a browsable list | 45 mins | Priority: High | Confidence: High | Scope Flag: No | Dependencies: Recipe Creation\n\nNice to Have: Recipe ratings, Recipe comments, Meal planner\n\nDoes this look correct?"
+        },
+        {
+          "role": "user",
+          "content": "Perfect, confirmed."
+        },
+        {
+          "role": "assistant",
+          "content": "SCOPING_COMPLETE"
+        }
+      ],
+      "expected": {
+        "projectName": "RecipeShare",
+        "availableTimeHours": 10,
+        "availableTime_is_null": false,
+        "backlog_count": 3,
+        "backlog": [
+          {
+            "name_contains": "Auth",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Creation",
+            "priority": "critical",
+            "confidence": "high",
+            "scopeFlag": false
+          },
+          {
+            "name_contains": "Brows",
+            "priority": "high",
+            "confidence": "high",
+            "scopeFlag": false
+          }
+        ],
+        "nice_to_have_count": 3,
+        "tech_stack_contains": ["Next.js", "MongoDB"]
+      },
+      "notes": "Three items must be in niceToHave: ratings, comments, meal planner."
+    }
+  ]
+}

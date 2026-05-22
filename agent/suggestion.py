@@ -14,42 +14,33 @@ logger = logging.getLogger(__name__)
 async def suggest_next_task(project_state: ProjectState) -> dict:
     vision = project_state.vision_doc
     log = project_state.feature_log
-    features = log["features"] # dict {"F001": { "name":,"status":,"cycles":,"drift_events":}...
-    
-    in_progress_ids = {
-    fid for fid, f in features.items()
-    if f["status"] == "in_progress"
-    }
+    features = {item.feature_id: item for item in log}
+
+    in_progress_ids = {fid for fid, f in features.items() if f.status == "in_progress"}
 
     # if anything is in_progress, return it immediately — no LLM call needed
     if in_progress_ids:
         active_id = next(iter(in_progress_ids))
-        active_name = features[active_id]["name"]
+        active_name = features[active_id].name
         return {
             "feature_id":   active_id,
             "feature_name": active_name,
             "reason":       f"{active_id} is already in progress. Continue working on it before starting something new.",
             "tokens":       0
         }
-    
-    # identify completed features
-    completed_ids = {
-        feature_id for feature_id, feature_data in features.items()
-        if feature_data["status"] == "complete"
-    }
 
-    # filter ready tasks
+    completed_ids = {fid for fid, f in features.items() if f.status == "complete"}
+
     ready_tasks = []
     for item in vision.backlog:
         if item.id in completed_ids:
-            print(f"Skipping {item.id} (already complete)" )
+            print(f"Skipping {item.id} (already complete)")
             continue
 
-        # all dependencies must be complete for this task to be ready
         deps_met = all(
-        features.get(dep_id, {}).get("status") == "complete"
-        for dep_id in item.dependencies
-      )
+            features[dep_id].status == "complete" if dep_id in features else False
+            for dep_id in item.dependencies
+        )
 
         if deps_met:
             ready_tasks.append({
@@ -70,27 +61,17 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
             "reason": "All features are complete or blocked by dependencies."
         }
 
-    # build single context dict matching {context} in prompt
     context = {
-    # from VisionDoc
     "projectName": vision.projectName,
     "visionStatement": vision.visionStatement,
     "successCriteria": vision.successCriteria,
     "experienceLevel": vision.experienceLevel,
     "availableTimeHours": vision.availableTimeHours,
     "constraints": vision.constraints,
-    
-    # calculated
     "remaining_budget_minutes": calculate_remaining_minutes(vision, log),
-    
-    # from feature log — critical for dependency checking
-    
-    "completed_features": [fid for fid, f in features.items() if f["status"] == "complete"],
-    "in_progress_features": [fid for fid, f in features.items() if f["status"] == "in_progress"],
-
+    "completed_features": [fid for fid, f in features.items() if f.status == "complete"],
+    "in_progress_features": [fid for fid, f in features.items() if f.status == "in_progress"],
     "available_to_start_now": [t["id"] for t in ready_tasks],
-    
-    # backlog with full detail
     "backlog": [
     {
         **item.model_dump(),
@@ -120,7 +101,6 @@ async def suggest_next_task(project_state: ProjectState) -> dict:
         raw = response.choices[0].message.content
         logger.debug(f"AI Suggestion Response: {raw}")
         
-        # 2. Parse the JSON and inject the token count
         result = json.loads(raw)
         result["tokens"] = token_count
         

@@ -15,17 +15,8 @@ async def extract_feature_id_from_msg(
     and a slice of history.
     """
     
-    features = feature_log["features"]  # get the dict
-    # filter out completed, build short list for the LLM
-    short_log = [
-        {"id": fid, "name": f["name"]}
-        for fid, f in features.items()
-        if f["status"] != "complete"
-    ]
-
-    # 2. Slice the history to exactly 10
-    # recent_history = history[-10:] if history else []
-    active_feature_id = next((fid for fid, f in feature_log["features"].items() if f["status"] == "in_progress"),None)
+    short_log = [{"id": f.feature_id, "name": f.name} for f in feature_log if f.status != "complete"]
+    active_feature_id = next((f.feature_id for f in feature_log if f.status == "in_progress"), None)
 
     active_feature_info = (
     f"IMPORTANT: Feature {active_feature_id} is already IN PROGRESS. "
@@ -73,12 +64,12 @@ async def extract_feature_id_from_msg(
         return {"feature_id": None, "reason": "Error", "tokens": 0}
 
 async def start_feature(project_state: ProjectState, feature_id: str) -> dict:
-    features = project_state.feature_log["features"]
+    feature = next((f for f in project_state.feature_log if f.feature_id == feature_id), None)
     
-    if feature_id not in features:
+    if not feature:
         return {"flag": "ERROR", "message": f"Feature {feature_id} not found in feature log."}
     
-    if features[feature_id]["status"] == "in_progress":
+    if feature.status == "in_progress":
         project_state.previous_feature_id = feature_id
         project_state.active_feature_id = feature_id
         return {"flag": "RESUMING", "message": f"Feature {feature_id} is already active, resuming."}
