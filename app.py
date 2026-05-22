@@ -3,6 +3,7 @@ import uuid
 import time
 import json
 import re
+import os
 from agent.agent_session import AgentSession, PHASE_GUARDIAN
 from agent.loop import Agent
 from interfaces import StorageBackend, AgentFunctions
@@ -319,5 +320,5 @@ with gr.Blocks(title="VibeGuard AI") as demo:
 
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(theme=gr.themes.Soft(), share=True, js=_DRIFT_JS)
+    demo.launch(theme=gr.themes.Soft(), share=False, js=_DRIFT_JS, server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
 
